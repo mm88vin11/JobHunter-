@@ -241,7 +241,13 @@ def apply(store, v: dict, *, force: bool = False, extra: str = "") -> dict:
             ref = send_email(c["emails"][0], out["subject"], letter)
             status, note = "sent", f"письмо отправлено на {c['emails'][0]}"
         elif channel == "telegram":
-            note = f"готово сообщение для @{c['telegram'][0]} — отправка в одно касание"
+            from . import userbot
+
+            if userbot.available(store):
+                userbot.send(store, c["telegram"][0], letter)
+                status, note = "sent", f"сообщение отправлено @{c['telegram'][0]} с вашего аккаунта"
+            else:
+                note = f"готово сообщение для @{c['telegram'][0]} — отправка в одно касание"
         else:
             note = "отклик на сайте работодателя — письмо готово" + (" (там анкета/тест)" if ins.get("manual_only") else "")
     except Limit as e:

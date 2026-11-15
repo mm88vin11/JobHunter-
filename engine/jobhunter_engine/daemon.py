@@ -46,10 +46,19 @@ def main(argv=None) -> int:
     bot = Bot(store, submit=lambda fn: pool.submit(_safe, store, fn), request_collect=collect_now.set)
     site.site_password(store)
     store.event(f"Запуск JobHunter · ИИ: {__import__('jobhunter_engine.ai', fromlist=['provider']).provider()}")
-    if bot.owner and not store.get("welcomed_v2"):
+    if bot.owner and not store.get("welcomed_v3"):
         bot.say("🤖 JobHunter перезапущен на GitHub и работает 24/7.")
         bot.cmd_site()
-        store.set("welcomed_v2", True)
+        store.set("welcomed_v3", True)
+
+    import signal
+
+    def _on_stop(*_):  # отмена запуска в GitHub: успеваем сохранить базу
+        log.info("получен сигнал остановки — сохраняюсь")
+        _persist(store, pages_dir, bot)
+        os._exit(0)
+    signal.signal(signal.SIGTERM, _on_stop)
+    signal.signal(signal.SIGINT, _on_stop)
 
     deadline = time.time() + args.max_minutes * 60
     last = {"tick": 0.0, "save": 0.0}

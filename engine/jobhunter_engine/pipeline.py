@@ -100,7 +100,10 @@ def tick(store, bot) -> str:
                 bot.notify_applied(store.one("SELECT rowid, * FROM vacancies WHERE id = ?", v["id"]), r)
         report.append(f"откликов {done}")
     notify = bot.notify_reply if bot else (lambda *a: None)
-    for name, fn in (("hh", ap.hh_sync), ("почта", ap.check_inbox)):
+    from . import userbot
+
+    tg_check = lambda st, nt: userbot.check_replies(st, nt, ap.handle_reply)  # noqa: E731
+    for name, fn in (("hh", ap.hh_sync), ("почта", ap.check_inbox), ("telegram", tg_check)):
         try:
             n = fn(store, notify)
             if n:

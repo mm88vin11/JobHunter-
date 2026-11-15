@@ -24,7 +24,7 @@ SRC = {
 HELP = (
     "<b>JobHunter — ваш автономный охотник за работой</b>\n\n"
     "/run — запустить сбор по всем 24 площадкам прямо сейчас\n/status — статистика и воронка\n/top — 10 лучших вакансий\n"
-    "/hot — кто хочет созвониться\n/waiting — отклики в одно касание\n/site — ссылка и пароль на сайт-панель\n"
+    "/hot — кто хочет созвониться\n/waiting — отклики в одно касание\n/site — ссылка и пароль на сайт-панель\n/tglogin — автоотправка откликов HR в Telegram\n"
     "/pause, /resume — пауза автооткликов\n/limit 40 — откликов в сутки\n/threshold 62 — порог автоотклика\n/hh — подключить hh.ru"
 )
 
@@ -73,9 +73,7 @@ class Bot:
         self.api("sendMessage", **payload)
 
     def site_url(self) -> str:
-        repo = os.environ.get("GITHUB_REPOSITORY", "mm88vin11/JobHunter-")
-        owner, name = repo.split("/")
-        return f"https://{owner.lower()}.github.io/{name}/"
+        return site_url()
 
     # ── карточки ──
     def card(self, v) -> str:
@@ -99,7 +97,7 @@ class Bot:
 
     def notify_applied(self, v, r: dict) -> None:
         if r["status"] == "sent":
-            self.say(f"✅ <b>Отклик отправлен</b> ({'hh.ru' if r['channel'] == 'hh' else 'email'})\n\n{self.card(v)}\n\n<i>{h(r.get('letter', '')[:1200])}</i>")
+            self.say(f"✅ <b>Отклик отправлен</b> ({ {'hh': 'hh.ru', 'email': 'email', 'telegram': 'Telegram'}.get(r['channel'], r['channel']) })\n\n{self.card(v)}\n\n<i>{h(r.get('letter', '')[:1200])}</i>")
             return
         if r["status"] != "waiting_user":
             return
@@ -204,6 +202,17 @@ class Bot:
             ov["dailyLimit" if cmd == "/limit" else "minScoreAuto"] = int(arg)
             self.store.set("settings_override", ov)
             self.say(f"Готово: {'откликов в сутки' if cmd == '/limit' else 'порог автоотклика'} = {arg}")
+        elif cmd == "/tglogin":
+            from . import userbot
+
+            self.say(h(userbot.start_login(self.store)) if userbot.configured() else
+                     "Для автоотправки в Telegram добавьте секреты TELEGRAM_API_ID, TELEGRAM_API_HASH (my.telegram.org → API development tools) и TELEGRAM_PHONE.")
+        elif cmd in ("/code", "/password"):
+            from . import userbot
+
+            if msg.get("message_id"):
+                self.api("deleteMessage", chat_id=chat, message_id=msg["message_id"])
+            self.say(h(userbot.finish_login(self.store, code=arg if cmd == "/code" else "", password=arg if cmd == "/password" else "")))
         elif cmd == "/hh":
             if arg.strip():
                 self.say(h(ap.hh_connect(self.store, arg.strip())))
@@ -279,3 +288,22 @@ def stats(store) -> dict:
         "offers": one("SELECT COUNT(*) FROM applications WHERE status = 'offer'"),
         "bySource": [dict(r) for r in store.q("SELECT source, COUNT(*) n FROM vacancies GROUP BY source ORDER BY n DESC")],
     }
+
+
+_SITE = {"url": None, "checked": 0.0}
+
+
+def site_url() -> str:
+    """GitHub Pages, если включены; иначе тот же сайт из ветки gh-pages через raw.githack (работает сразу)."""
+    import time as _t
+
+    repo = os.environ.get("GITHUB_REPOSITORY", "mm88vin11/JobHunter-")
+    owner, name = repo.split("/")
+    pages = f"https://{owner.lower()}.github.io/{name}/"
+    if _t.time() - _SITE["checked"] > 900:
+        _SITE["checked"] = _t.time()
+        try:
+            _SITE["url"] = pages if requests.get(pages, timeout=10).status_code == 200 else None
+        except Exception:
+            _SITE["url"] = None
+    return _SITE["url"] or f"https://raw.githack.com/{repo}/gh-pages/index.html"

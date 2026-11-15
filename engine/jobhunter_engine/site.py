@@ -62,6 +62,8 @@ def snapshot(store, bot_username: str) -> dict:
         "connections": {
             "ai": ai.provider(), "telegram": bool(store.get("tg_owner")), "hh": ap.hh_connected(store), "hh_configured": bool(os.environ.get("HH_CLIENT_ID")),
             "email": bool(ap.mail_conf()), "vk": bool(os.environ.get("VK_SERVICE_TOKEN")),
+            "tg_user": __import__("jobhunter_engine.userbot", fromlist=["available"]).available(store),
+            "tg_user_configured": __import__("jobhunter_engine.userbot", fromlist=["configured"]).configured(),
         },
         "engine": store.get("engine_last"),
     }

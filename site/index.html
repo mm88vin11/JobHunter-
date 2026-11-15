@@ -192,6 +192,7 @@ function renderConn(){const c=D.connections,row=(ok,name,desc,btn='')=>'<div cla
   row(c.telegram,'Telegram-бот','@'+esc(D.bot),'<a class="btn sm" target="_blank" href="https://t.me/'+esc(D.bot)+'">Открыть</a>')+
   row(c.hh,'hh.ru — автоотклики',c.hh?'Подключено':c.hh_configured?'Отправьте боту /hh':'Нужны секреты HH_CLIENT_ID и HH_CLIENT_SECRET (dev.hh.ru)',c.hh_configured&&!c.hh?'<a class="btn sm primary" target="_blank" href="https://t.me/'+esc(D.bot)+'">/hh в боте</a>':'<a class="btn sm" target="_blank" href="'+sec+'">Секреты</a>')+
   row(c.email,'Email-отклики с вашей почты','Секреты EMAIL_ADDRESS и EMAIL_APP_PASSWORD (пароль приложения mail.ru)','<a class="btn sm" target="_blank" href="'+sec+'">Секреты</a>')+
+  row(c.tg_user,'Автоотправка HR в Telegram',c.tg_user?'Включена: письма уходят с вашего аккаунта, до 15 в сутки':c.tg_user_configured?'Отправьте боту /tglogin':'Секреты TELEGRAM_API_ID, TELEGRAM_API_HASH, TELEGRAM_PHONE, затем /tglogin в боте','<a class="btn sm" target="_blank" href="'+sec+'">Секреты</a>')+
   row(c.vk,'VK-сообщества','Секрет VK_SERVICE_TOKEN')+
   (D.engine?'<h2 style="margin-top:12px">Последний сбор '+new Date(D.engine.at).toLocaleString('ru')+'</h2><div class="muted" style="font-size:13px">'+Object.entries(D.engine.stats||{}).map(([k,v])=>esc(k==='jobspy'?'LinkedIn/Indeed/Glassdoor/…':SRC(k))+': '+esc(v)).join(' · ')+'</div>':'')}
 let saved=null;try{saved=localStorage.getItem('jh_pw')}catch(e){}

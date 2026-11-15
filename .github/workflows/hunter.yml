@@ -40,6 +40,9 @@ jobs:
       EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
       EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
       VK_SERVICE_TOKEN: ${{ secrets.VK_SERVICE_TOKEN }}
+      TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+      TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+      TELEGRAM_PHONE: ${{ secrets.TELEGRAM_PHONE }}
     steps:
       - uses: actions/checkout@v4
         with:

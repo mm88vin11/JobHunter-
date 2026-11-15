@@ -8,7 +8,7 @@
 Всё работает **бесплатно внутри GitHub**: бот и движок живут в GitHub Actions, сайт-панель на GitHub Pages,
 база хранится в зашифрованном виде в ветке `jobhunter-data`.
 
-- 🌐 Панель: **https://mm88vin11.github.io/JobHunter-/** (пароль присылает бот по команде `/site`)
+- 🌐 Панель: **https://raw.githack.com/mm88vin11/JobHunter-/gh-pages/index.html** (пароль присылает бот по команде `/site`; после включения GitHub Pages также https://mm88vin11.github.io/JobHunter-/)
 - 🤖 Бот: **[@DreamJobAgent](https://t.me/DreamJobAgent)**
 
 > Проект собран поверх лучших открытых репозиториев: [JobSpy](https://github.com/speedyapply/JobSpy) (4.7k★, MIT)
@@ -42,8 +42,9 @@
 
 | Секрет | Что даёт | Где взять |
 |---|---|---|
-| `HH_CLIENT_ID`, `HH_CLIENT_SECRET` | **автоотклики на hh.ru** и слежение за приглашениями | [dev.hh.ru](https://dev.hh.ru) → зарегистрировать приложение, Redirect URI: `https://mm88vin11.github.io/JobHunter-/hh.html`. Потом команда `/hh` в боте |
+| `HH_CLIENT_ID`, `HH_CLIENT_SECRET` | **автоотклики на hh.ru** и слежение за приглашениями | [dev.hh.ru](https://dev.hh.ru) → зарегистрировать приложение, Redirect URI: `https://raw.githack.com/mm88vin11/JobHunter-/gh-pages/hh.html`. Потом команда `/hh` в боте |
 | `EMAIL_ADDRESS`, `EMAIL_APP_PASSWORD` | отклики письмом **с вашей почты** и чтение ответов работодателей | mail.ru → Безопасность → Пароли для внешних приложений |
+| `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_PHONE` | **автоотправка откликов HR в Telegram** с вашего аккаунта (до 15 в сутки), чтение их ответов. После добавления: `/tglogin` в боте | [my.telegram.org](https://my.telegram.org) → API development tools; телефон в формате +7… |
 | `VK_SERVICE_TOKEN` | VK-сообщества с вакансиями | vk.com/apps?act=manage → приложение → сервисный ключ |
 | `DATA_KEY` | отдельный ключ шифрования базы (иначе используется токен бота) | любая длинная случайная строка |
 
