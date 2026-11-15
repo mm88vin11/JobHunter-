@@ -76,6 +76,14 @@ def publish(store, pages_dir: str, bot_username: str) -> None:
     for name in os.listdir(SITE_SRC):
         shutil.copy(os.path.join(SITE_SRC, name), os.path.join(pages_dir, name))
     open(os.path.join(pages_dir, ".nojekyll"), "w").close()
+    st = stats(store)
+    with open(os.path.join(pages_dir, "status.json"), "w") as f:  # открытый статус: только счётчики и ошибки
+        json.dump({
+            "updated": store.one("SELECT datetime('now')")[0], "ai": ai.provider(), "bot_owner_bound": bool(store.get("tg_owner")),
+            "counts": {k: v for k, v in st.items() if k != "bySource"}, "bySource": st["bySource"],
+            "last_tick": (store.get("last_tick") or {}).get("report"), "engine": store.get("engine_last"),
+            "errors": [dict(r) for r in store.q("SELECT at, substr(text, 1, 200) AS text FROM events WHERE level = 'error' ORDER BY id DESC LIMIT 10")],
+        }, f, ensure_ascii=False, indent=1)
     with open(os.path.join(pages_dir, "data.enc.json"), "w") as f:
         json.dump(encrypt_for_web(site_password(store), snapshot(store, bot_username)), f)
     git_commit_push(pages_dir, "gh-pages", ["."], "site")
