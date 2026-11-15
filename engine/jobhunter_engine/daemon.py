@@ -34,8 +34,8 @@ def main(argv=None) -> int:
     ap.add_argument("--workdir", default=os.environ.get("RUNNER_TEMP", "/tmp"))
     args = ap.parse_args(argv)
     if not os.environ.get("TELEGRAM_BOT_TOKEN"):
-        log.error("Нет секрета TELEGRAM_BOT_TOKEN: Settings → Secrets and variables → Actions → New repository secret")
-        return 1
+        print("::warning::Нет секрета TELEGRAM_BOT_TOKEN — добавьте его: Settings → Secrets and variables → Actions → New repository secret")
+        return 0
 
     data_dir = prepare_branch_worktree(ROOT, DATA_BRANCH, os.path.join(args.workdir, "jh-data"))
     pages_dir = prepare_branch_worktree(ROOT, "gh-pages", os.path.join(args.workdir, "jh-pages"))
