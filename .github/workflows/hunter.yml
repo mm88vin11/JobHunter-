@@ -8,14 +8,13 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "run — обычная работа, selftest — проверка ИИ и сбора без секретов"
+        description: "run — обычная работа, selftest — проверка сбора, инструкций работодателя и писем"
         default: run
         type: choice
         options: [run, selftest]
 
 permissions:
   contents: write
-  models: read
   pages: write
 
 concurrency:

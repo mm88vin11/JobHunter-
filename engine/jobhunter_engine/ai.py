@@ -3,7 +3,7 @@
 Если задан ANTHROPIC_API_KEY — Claude, экономная схема:
   • оценка сотен вакансий — Claude Haiku 5.5 (≈$0.0005 за вакансию);
   • письма и ответы работодателям — Claude Opus 5.5 (их десятки в день, качество важнее всего).
-Без ключа — бесплатные GitHub Models (GITHUB_TOKEN в Actions): gpt-4.1-mini / gpt-4.1.
+Без ключа: оценка по правилам dream-job-bot и черновик по шаблону (кодовые слова всё равно вставляются), без автоотправки.
 """
 from __future__ import annotations
 
@@ -12,16 +12,12 @@ import logging
 import os
 import re
 
-import requests
-
 from candidate.service import extract_apply_instructions, extract_screening_steps, required_letter_openings  # dream-job-bot
 
 log = logging.getLogger("jobhunter")
 
 SCORE_MODEL = os.environ.get("CLAUDE_SCORE_MODEL", "claude-haiku-5-5")
 WRITE_MODEL = os.environ.get("CLAUDE_WRITE_MODEL", "claude-opus-5-5")
-GH_SCORE_MODEL = os.environ.get("GH_SCORE_MODEL", "openai/gpt-4.1-mini")
-GH_WRITE_MODEL = os.environ.get("GH_WRITE_MODEL", "openai/gpt-4.1")
 
 _client = None
 
@@ -29,9 +25,11 @@ _client = None
 def provider() -> str:
     if os.environ.get("ANTHROPIC_API_KEY"):
         return f"Claude: оценка {SCORE_MODEL}, письма {WRITE_MODEL}"
-    if os.environ.get("GITHUB_TOKEN"):
-        return f"GitHub Models (бесплатно): {GH_SCORE_MODEL} / {GH_WRITE_MODEL}"
-    return "ИИ не подключён"
+    return "без ИИ (добавьте секрет ANTHROPIC_API_KEY): оценка по правилам, черновики по шаблону, автоотправка выключена"
+
+
+def enabled() -> bool:
+    return bool(os.environ.get("ANTHROPIC_API_KEY"))
 
 
 def _claude(system: str, user: str, schema: dict, *, write: bool, max_tokens: int) -> dict:
@@ -60,40 +58,10 @@ def _claude(system: str, user: str, schema: dict, *, write: bool, max_tokens: in
     return json.loads(text)
 
 
-def _github_models(system: str, user: str, schema: dict, *, write: bool, max_tokens: int) -> dict:
-    r = requests.post(
-        "https://models.github.ai/inference/chat/completions",
-        headers={"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}", "Content-Type": "application/json"},
-        json={
-            "model": GH_WRITE_MODEL if write else GH_SCORE_MODEL,
-            "messages": [
-                {"role": "system", "content": system + "\nОтветь строго одним JSON-объектом по схеме:\n" + json.dumps(schema, ensure_ascii=False)},
-                {"role": "user", "content": user},
-            ],
-            "response_format": {"type": "json_object"},
-            "temperature": 0.7 if write else 0.2,
-            "max_tokens": max_tokens,
-        },
-        timeout=120,
-    )
-    if r.status_code == 429:
-        raise RuntimeError("лимит GitHub Models на сегодня исчерпан")
-    if r.status_code >= 400:
-        raise RuntimeError(f"GitHub Models {r.status_code}: {r.text[:300]}")
-    try:
-        text = r.json()["choices"][0]["message"]["content"]
-    except Exception:
-        raise RuntimeError(f"GitHub Models вернул не JSON: {r.text[:200]}")
-    m = re.search(r"\{.*\}", text, re.S)
-    return json.loads(m.group(0) if m else text)
-
-
 def llm_json(system: str, user: str, schema: dict, *, write: bool = False, max_tokens: int = 3000) -> dict:
     if os.environ.get("ANTHROPIC_API_KEY"):
         return _claude(system, user, schema, write=write, max_tokens=max_tokens)
-    if os.environ.get("GITHUB_TOKEN"):
-        return _github_models(system, user, schema, write=write, max_tokens=min(max_tokens, 4000))
-    raise RuntimeError("ИИ не подключён: добавьте ANTHROPIC_API_KEY или запускайте в GitHub Actions")
+    raise RuntimeError("ИИ не подключён: добавьте секрет ANTHROPIC_API_KEY")
 
 
 def clamp(v, lo=0, hi=100) -> int:
@@ -160,11 +128,19 @@ EVAL_SCHEMA = {
 
 def evaluate(v: dict, profile: dict) -> dict:
     rx = regex_instructions(v["title"], v.get("description") or "")
+    if not enabled():
+        rule = v.get("rule_score") if v.get("rule_score") is not None else 50
+        return {"is_job": True, "scam": False, "fit": rule, "conditions": rule, "chance": rule, "red_flags": [],
+                "verdict": "Оценка по правилам (ИИ не подключён)",
+                "instructions": {"must_include": rx["phrases"], "must_start_with": rx["openings"][0] if rx["openings"] else "", "subject": "",
+                                 "questions": [], "other_rules": [], "manual_only": bool(rx["screening"]), "screening": rx["screening"], "raw": rx["lines"]}}
     hint = ("\n\nПохоже на инструкции к отклику (проверь и извлеки точно):\n- " + "\n- ".join(rx["lines"])) if rx["lines"] else ""
     r = llm_json(
         "Ты опытный IT-рекрутер. Оцени вакансию для кандидата честно и строго (0-100): fit — соответствие требованиям; "
         "conditions — деньги относительно рынка, удалёнка, гибкость, продукт, рост; chance — вероятность приглашения "
         "(у кандидата ~1.5 года своей студии, без вуза, сильное портфолио; Senior/Lead с 5+ годами — низкий шанс). "
+        "ГЛАВНАЯ ЦЕЛЬ кандидата — работа вайб-кодером, который создаёт сайты, веб-приложения, мини-приложения и ботов с помощью ИИ: "
+        "такие вакансии получают максимальные fit и conditions; чистый ML, Java/Go/C++ бэкенд, QA и продажи — низкие. "
         "scam — платное обучение, предоплата, серые схемы. Отдельно и ДОСЛОВНО извлеки инструкции к отклику: кодовые слова, "
         "фразу для начала письма, тему письма, вопросы, на которые нужно ответить. verdict — 1-2 предложения по-русски.",
         f"КАНДИДАТ:\n{profile['resumeRu']}\n\nПОЖЕЛАНИЯ: {profile['wishes']}\n\nВАКАНСИЯ ({v['source']}): {v['title']}\n"
@@ -261,6 +237,7 @@ def write_letter(v: dict, profile: dict, *, channel: str, instructions: dict | N
             "Write like a real person: plain, specific, confident, not salesy. Natural American English.",
             "Open with a short greeting and who you are in one line. Never restate the job post back to them.",
             "Pick the 2–3 most important requirements and answer each with a REAL fact from the resume.",
+            "If the role is about building websites, apps or bots, lead with that: the studio site with 3D and physics, turnkey site + bot + CRM + AI setups, bots and mini apps with payments, daily work with Cursor/Claude.",
             "Use ONLY facts from the resume. Never invent numbers, employers, years or technologies.",
             "Mention the studio website is the portfolio and worth clicking around (the link is added in the signature).",
             "End with a concrete next step: a 15–20 minute call or a quick project walkthrough.",
@@ -273,6 +250,7 @@ def write_letter(v: dict, profile: dict, *, channel: str, instructions: dict | N
             "Пиши как живой человек: просто, конкретно, уверенно, без канцелярита и пафоса.",
             "Первая фраза: приветствие и сразу суть, кто ты. Не пересказывай работодателю его же вакансию.",
             "Возьми 2–3 главных требования вакансии и на каждое ответь реальным фактом из резюме.",
+            "Если вакансия про сайты, приложения или ботов, опирайся на это в первую очередь: сайт студии с 3D и физикой, связки «сайт + бот + CRM + ИИ», боты и мини-приложения с оплатой, работа с Cursor/Claude каждый день.",
             "Только факты из резюме. Ничего не выдумывай: ни цифр, ни компаний, ни сроков, ни технологий.",
             "Если чего-то из требований нет в опыте, не ври; можно сказать, что быстро осваиваешь с ИИ-инструментами.",
             "Скажи, что сайт студии и есть портфолио, его стоит покрутить руками (ссылка будет в подписи).",
@@ -305,6 +283,8 @@ def write_letter(v: dict, profile: dict, *, channel: str, instructions: dict | N
     )
     schema = {"type": "object", "additionalProperties": False, "required": ["letter", "subject"],
               "properties": {"letter": {"type": "string"}, "subject": {"type": "string", "description": "тема письма для email; если работодатель задал тему, она дословно"}}}
+    if not enabled():
+        return template_letter(v, profile, ins)
     letter, subject, problems = "", "", []
     for attempt in range(3):
         user = base if attempt == 0 else f"{base}\n\nПРЕДЫДУЩИЙ ВАРИАНТ:\n{letter}\n\nИСПРАВЬ ТОЛЬКО ЭТО, остальное сохрани:\n- " + "\n- ".join(problems)
@@ -320,9 +300,51 @@ def write_letter(v: dict, profile: dict, *, channel: str, instructions: dict | N
     return {"letter": f"{letter}\n\n{signature(profile, lang)}", "subject": subject, "problems": problems}
 
 
+SKILL_PHRASES_RU = [
+    (("сайт", "лендинг", "landing", "web", "веб"), "делаю сайты и веб-приложения целиком, фронт и бэк; сайт студии с 3D и физикой и есть портфолио"),
+    (("бот", "bot", "telegram", "телеграм", "mini app", "мини-прил"), "собираю Telegram/VK/MAX-ботов и мини-приложения, в том числе с приёмом оплат"),
+    (("crm", "битрикс", "amocrm", "автоматизац", "интеграц"), "автоматизирую бизнес: CRM (Битрикс24, amoCRM), интеграции, аналитика"),
+    (("ai", "ии", "llm", "gpt", "нейросет", "cursor", "claude", "вайб", "vibe"), "больше года каждый день работаю с нейросетями: вайб-кодинг, LLM, промпты"),
+    (("дизайн", "ui", "ux", "figma", "3d", "анимац"), "рисую интерфейсы, делаю 3D и анимации"),
+]
+SKILL_PHRASES_EN = [
+    (("site", "web", "landing", "frontend", "full"), "I build websites and web apps end to end; my studio site with 3D and physics is my portfolio"),
+    (("bot", "telegram", "mini app", "chat"), "I build Telegram and VK bots and mini apps, including payments"),
+    (("crm", "automation", "integration", "zapier", "n8n"), "I automate businesses: CRM, integrations, analytics"),
+    (("ai", "llm", "gpt", "cursor", "claude", "vibe", "agent"), "I have used AI tools every day for over a year: vibe coding, LLMs, prompt engineering"),
+    (("design", "ui", "ux", "figma", "3d"), "I design interfaces, 3D and animations"),
+]
+
+
+def template_letter(v: dict, profile: dict, ins: dict) -> dict:
+    """Черновик без ИИ: факты из резюме, подобранные под слова вакансии, + обязательные фразы работодателя."""
+    lang = "en" if v.get("lang") == "en" else "ru"
+    hay = f"{v['title']} {v.get('description') or ''}".lower()
+    table = SKILL_PHRASES_EN if lang == "en" else SKILL_PHRASES_RU
+    facts = [p for keys, p in table if any(k in hay for k in keys)][:3] or [table[0][1], table[3][1]]
+    start = (ins.get("must_start_with") + ". ") if ins.get("must_start_with") else ""
+    words = ", ".join(ins.get("must_include") or [])
+    if lang == "en":
+        body = (f"{start}Hi! I'm Vlad, founder and full-stack developer at the BAZA studio. I saw the {v['title']} role and it matches what I do every day. "
+                + " ".join(f[0].upper() + f[1:] + "." for f in facts)
+                + (f" P.S. {words}" if words else "") + " Happy to jump on a 15 minute call and walk you through my projects.")
+        subject = f"{v['title']}: application from Vlad"
+    else:
+        body = (f"{start}Здравствуйте! Я Влад, основатель и fullstack-разработчик студии «БАЗА». Увидел вакансию «{v['title']}», это ровно то, чем я занимаюсь каждый день. "
+                + " ".join(f[0].upper() + f[1:] + "." for f in facts)
+                + (f" Кодовое слово: {words}." if words else "") + " Буду рад созвониться на 15 минут и показать проекты.")
+        subject = f"Отклик на вакансию «{v['title']}»"
+    return {"letter": f"{body}\n\n{signature(profile, lang)}", "subject": ins.get("subject") or subject, "problems": ["черновик без ИИ — проверьте перед отправкой"]}
+
+
 # ─────────────────────────────── Ответ работодателя ───────────────────────────────
 
 def analyze_reply(v: dict | None, history: str, reply: str, profile: dict) -> dict:
+    if not enabled():
+        low = reply.lower()
+        hot = any(k in low for k in ("созвон", "собеседован", "интервью", "встреч", "call", "interview", "приглаша", "invite", "schedule"))
+        rej = any(k in low for k in ("к сожалению", "отказ", "unfortunately", "not moving forward", "другого кандидата"))
+        return {"kind": "invite" if hot else "reject" if rej else "other", "hot": hot, "summary": reply[:200], "suggested_answer": ""}
     lang = "en" if (v or {}).get("lang") == "en" else "ru"
     r = llm_json(
         "Ты ассистент соискателя. Разбери ответ работодателя и подготовь короткий, вежливый, человеческий ответ от лица кандидата. "

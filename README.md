@@ -33,7 +33,7 @@
 | `VK_SERVICE_TOKEN` | VK-сообщества с вакансиями | vk.com/apps?act=manage → приложение → сервисный ключ |
 | `DATA_KEY` | отдельный ключ шифрования базы (иначе используется токен бота) | любая длинная случайная строка |
 
-Без `ANTHROPIC_API_KEY` работают бесплатные **GitHub Models** (gpt-4.1-mini и gpt-4.1) с дневными лимитами.
+Без `ANTHROPIC_API_KEY` система всё равно собирает и ранжирует вакансии и готовит черновики по шаблону (с кодовыми словами), но сама их не отправляет. Бесплатного ИИ внутри GitHub больше нет: GitHub Models закрыты летом 2026 года.
 
 ## Что умеет
 
@@ -68,7 +68,7 @@ GitHub Actions: workflow «JobHunter» (каждые 30 мин, один зап�
  ├─ Telegram-бот: long polling, сервер не нужен
  ├─ сбор: engine/vendor/jobspy_repo (JobSpy) + jobhunter_engine/sources (15 площадок сверху)
  ├─ антискам и ранжирование: engine/vendor/dreamjob (dream-job-bot)
- ├─ ИИ: Claude (Haiku 5.5 оценка, Opus 5.5 письма) или GitHub Models
+ ├─ ИИ: Claude (Haiku 5.5 оценка, Opus 5.5 письма)
  ├─ отклики: hh.ru API · SMTP · ссылки t.me
  ├─ ответы: hh.ru negotiations · IMAP
  ├─ база SQLite → AES-GCM → ветка jobhunter-data

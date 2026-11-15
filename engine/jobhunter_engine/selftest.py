@@ -30,7 +30,7 @@ def main() -> int:
         print("инструкции работодателя:", json.dumps(e["instructions"], ensure_ascii=False))
         out = ai.write_letter(v, prof, channel="email", instructions=e["instructions"])
         print("тема:", out["subject"], "\n" + out["letter"], "\nпроблемы:", out["problems"])
-        if v is test and "pineapple" not in out["letter"].lower():
+        if v is test and "pineapple" not in out["letter"].lower():  # кодовое слово обязано попасть в письмо
             ok = False
             print("❌ кодовое слово не вставлено")
     return 0 if ok else 1

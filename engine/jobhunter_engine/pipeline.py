@@ -80,7 +80,9 @@ def tick(store, bot) -> str:
         if score >= 85 and bot:
             bot.notify_top(store.one("SELECT rowid, * FROM vacancies WHERE id = ?", v["id"]), s["autoApply"] and score >= s["minScoreAuto"])
     report.append(f"оценено {evaluated}")
-    if s.get("autoApply"):
+    if s.get("autoApply") and not ai.enabled():
+        report.append("автоотклики ждут ключ Claude")
+    if s.get("autoApply") and ai.enabled():
         left = s["dailyLimit"] - sent_today(store)
         n = max(0, min(s.get("applyPerTick", 3), left))
         done = 0

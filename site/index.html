@@ -161,7 +161,7 @@ function renderSettings(){const s=D.settings,edit=f=>'https://github.com/'+D.rep
   '<p class="muted">Быстро из Telegram: /limit 40 · /threshold 62 · /pause · /resume</p><h2>Площадки</h2><div class="src">'+Object.entries(s.sources).map(([k,on])=>'<span>'+(on?'✅':'⛔')+' '+esc(SRC(k))+'</span>').join('')+'</div>'}
 function renderConn(){const c=D.connections,row=(ok,name,desc,btn='')=>'<div class="row"><span class="dot '+(ok?'ok':'')+'"></span><div style="flex:1;min-width:220px"><b>'+name+'</b><div class="muted" style="font-size:13px">'+desc+'</div></div>'+btn+'</div>';
   const sec='https://github.com/'+D.repo+'/settings/secrets/actions/new';
-  $('#conn').innerHTML='<h2>Подключения</h2>'+row(c.ai!=='ИИ не подключён','ИИ',esc(c.ai)+(c.ai.startsWith('Claude')?'':' · для лучших писем добавьте секрет ANTHROPIC_API_KEY'),c.ai.startsWith('Claude')?'':'<a class="btn sm" target="_blank" href="'+sec+'">Добавить ключ</a>')+
+  $('#conn').innerHTML='<h2>Подключения</h2>'+row(c.ai.startsWith('Claude'),'ИИ (Claude)',esc(c.ai),c.ai.startsWith('Claude')?'':'<a class="btn sm" target="_blank" href="'+sec+'">Добавить ключ</a>')+
   row(c.telegram,'Telegram-бот','@'+esc(D.bot),'<a class="btn sm" target="_blank" href="https://t.me/'+esc(D.bot)+'">Открыть</a>')+
   row(c.hh,'hh.ru — автоотклики',c.hh?'Подключено':c.hh_configured?'Отправьте боту /hh':'Нужны секреты HH_CLIENT_ID и HH_CLIENT_SECRET (dev.hh.ru)',c.hh_configured&&!c.hh?'<a class="btn sm primary" target="_blank" href="https://t.me/'+esc(D.bot)+'">/hh в боте</a>':'<a class="btn sm" target="_blank" href="'+sec+'">Секреты</a>')+
   row(c.email,'Email-отклики с вашей почты','Секреты EMAIL_ADDRESS и EMAIL_APP_PASSWORD (пароль приложения mail.ru)','<a class="btn sm" target="_blank" href="'+sec+'">Секреты</a>')+

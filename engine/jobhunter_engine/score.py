@@ -39,6 +39,9 @@ def _load_profile() -> dict:
 
 PROFILE = _load_profile()
 SENIOR_RE = re.compile(r"\b(?:senior|sr\.?|lead|principal|staff|head|director|chief|cto|architect)\b|ведущ|старш|руководител|архитектор|тимлид", re.I)
+DREAM_ROLE_RE = re.compile(r"вайб|vibe|ai[- ]?(web|app|site|website|product) ?(developer|builder|engineer)|разработчик (сайтов|ботов|чат-ботов|мини-приложений)|bot developer|chatbot")
+DREAM_MAKE_RE = re.compile(r"сайт|лендинг|веб-приложен|web app|website|landing|приложени|mini app|мини-приложен|бот|bot")
+DREAM_AI_RE = re.compile(r"cursor|claude|chatgpt|gpt|llm|нейросет|ии-инструмент|ai tools|ai-assisted|vibe|вайб|copilot|bolt|lovable|v0")
 JUNIOR_RE = re.compile(r"\b(?:junior|jr\.?|middle|intern)\b|стаж[её]р|младш|начинающ|без опыта", re.I)
 try:
     ranking._ROLE_VOCABULARY["vibe_coder"] = VIBE_VOCAB  # type: ignore[index]
@@ -67,6 +70,12 @@ def score(v: Vacancy, stop_phrases: list[str], blocked: list[str]) -> Vacancy:
             total -= 18
         if JUNIOR_RE.search(v.title):
             total += 6
+        # Главная цель кандидата: вайб-кодер, который делает сайты, приложения и ботов
+        hay = f"{v.title} {v.description[:3000]}".lower()
+        if DREAM_ROLE_RE.search(v.title.lower()):
+            total += 12
+        elif DREAM_MAKE_RE.search(hay) and DREAM_AI_RE.search(hay):
+            total += 7
         v.rule_score = max(0, min(100, total))
         v.ranking = {k: r[k] for k in ("total", "hard_reject", "hard_reject_reason", "pros", "cons", "fit_reasons", "missing_reasons", "reply_chance", "reply_chance_reason", "explanation")}
     except Exception as e:
