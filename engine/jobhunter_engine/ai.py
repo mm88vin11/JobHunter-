@@ -28,14 +28,15 @@ _client = None
 # Ключи Gemini / Groq / OpenRouter бесплатные (без карты); Pollinations работает вообще без ключа.
 FREE_PROVIDERS = [
     ("Google Gemini", "GEMINI_API_KEY", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-     os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")),
+     os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")),
     ("Groq", "GROQ_API_KEY", "https://api.groq.com/openai/v1/chat/completions", os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")),
     ("OpenRouter", "OPENROUTER_API_KEY", "https://openrouter.ai/api/v1/chat/completions",
      os.environ.get("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")),
     ("Pollinations", None, "https://text.pollinations.ai/openai", os.environ.get("POLLINATIONS_MODEL", "openai")),
 ]
 _last_call = {"t": 0.0}
-GEMINI_MODELS = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
+GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-flash-lite-latest"]
+_DEAD_MODELS: set[str] = set()  # модели, которые провайдер снял с поддержки (404) — больше не дёргаем
 
 
 def _free_chain() -> list[tuple]:
@@ -66,7 +67,7 @@ def _openai_compatible(name: str, key_env: str | None, url: str, model: str, sys
     headers = {"Content-Type": "application/json"}
     if key_env:
         headers["Authorization"] = f"Bearer {os.environ[key_env]}"
-    r = requests.post(url, headers=headers, timeout=(10, 75), json={
+    r = requests.post(url, headers=headers, timeout=(10, 90), json={
         "model": model,
         "messages": [
             {"role": "system", "content": system + "\nОтветь строго одним JSON-объектом по этой схеме (все числа — целые 0..100, где это оценки):\n"
@@ -76,6 +77,7 @@ def _openai_compatible(name: str, key_env: str | None, url: str, model: str, sys
         "response_format": {"type": "json_object"},
         "temperature": 0.7 if write else 0.2,
         "max_tokens": max_tokens,
+        **({"reasoning_effort": "low"} if "gemini" in url else {}),
     })
     if r.status_code >= 400:
         raise RuntimeError(f"{name} {r.status_code}: {r.text[:200]}")
@@ -120,9 +122,13 @@ def llm_json(system: str, user: str, schema: dict, *, write: bool = False, max_t
     for name, key_env, url, model in _free_chain():
         models = list(dict.fromkeys([model] + (GEMINI_MODELS if name == "Google Gemini" else [model, model])))
         for m in models:  # перегрузка/таймаут → сразу другая модель, затем следующий провайдер
+            if m in _DEAD_MODELS:
+                continue
             try:
                 return _openai_compatible(name, key_env, url, m, system, user, schema, max_tokens, write)
             except Exception as e:
+                if " 404" in str(e) or "no longer available" in str(e):
+                    _DEAD_MODELS.add(m)
                 errors.append(f"{name}/{m}: {str(e)[:120]}")
                 log.info("ИИ %s/%s: %s", name, m, str(e)[:200])
                 time.sleep(3)
