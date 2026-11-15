@@ -8,3 +8,5 @@ markdownify>=1.1.0
 # dream-job-bot (vendor/dreamjob, MIT) — нужны только stdlib-модули candidate.traps / candidate.ranking / candidate.hh_official
 httpx>=0.27.0
 openai>=1.30.0  # импортируется dream-job-bot (candidate/__init__)
+anthropic>=2.8.0
+cryptography>=43.0.0

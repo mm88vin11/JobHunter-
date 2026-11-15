@@ -42,15 +42,15 @@ DEFAULT_CFG = {
 }
 
 
-def load_config(worker: str | None, token: str | None) -> dict:
+def load_config(worker: str | None = None, token: str | None = None) -> dict:
+    """Конфиг сборщика из config/settings.json (раньше — из Cloudflare Worker)."""
+    from . import config
+
     cfg = dict(DEFAULT_CFG)
-    if worker:
-        try:
-            r = requests.get(f"{worker}/api/engine/config", headers={"Authorization": f"Bearer {token}"}, timeout=30)
-            r.raise_for_status()
-            cfg.update({k: v for k, v in r.json().items() if v not in (None, "")})
-        except Exception as e:
-            log.warning("не удалось получить конфиг из Worker (%s), использую значения по умолчанию", e)
+    try:
+        cfg.update(config.engine_cfg(config.settings()))
+    except Exception as e:
+        log.warning("config/settings.json не прочитан (%s), использую значения по умолчанию", e)
     cfg["must_have_any"] = [w.lower() for w in cfg["must_have_any"]]
     for env_key, cfg_key in (("HH_ACCESS_TOKEN", "hh_token"), ("VK_SERVICE_TOKEN", "vk_token"), ("HH_RESUME_ID", "hh_resume_id")):
         if os.environ.get(env_key) and not cfg.get(cfg_key):
@@ -149,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     worker = (os.environ.get("WORKER_URL") or "").rstrip("/")
     token = os.environ.get("ENGINE_TOKEN") or ""
-    cfg = load_config(worker if not args.dry_run else None, token)
+    cfg = load_config()
     only = {s.strip() for s in args.only.split(",") if s.strip()} or None
     raw = collect(cfg, only)
     items = filter_and_score(cfg, raw)

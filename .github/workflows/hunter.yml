@@ -1,0 +1,64 @@
+name: JobHunter
+
+# Один долгий запуск (~5ч40м) держит Telegram-бота онлайн, собирает вакансии, оценивает их ИИ и откликается.
+# Расписание каждые 30 минут: если запуск уже идёт, следующий ждёт в очереди и стартует сразу после него — бот работает 24/7.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "run — обычная работа, selftest — проверка ИИ и сбора без секретов"
+        default: run
+        type: choice
+        options: [run, selftest]
+
+permissions:
+  contents: write
+  models: read
+  pages: write
+
+concurrency:
+  group: jobhunter-${{ github.event.inputs.mode || 'run' }}
+  cancel-in-progress: false
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      PYTHONPATH: engine
+      PYTHONUNBUFFERED: "1"
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      DATA_KEY: ${{ secrets.DATA_KEY }}
+      HH_CLIENT_ID: ${{ secrets.HH_CLIENT_ID }}
+      HH_CLIENT_SECRET: ${{ secrets.HH_CLIENT_SECRET }}
+      EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+      EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
+      VK_SERVICE_TOKEN: ${{ secrets.VK_SERVICE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: engine/requirements.txt
+      - run: pip install -r engine/requirements.txt
+      - name: Самопроверка (ИИ + сбор)
+        if: github.event.inputs.mode == 'selftest'
+        run: python -m jobhunter_engine.selftest
+      - name: Включить GitHub Pages (если ещё не включены)
+        if: github.event.inputs.mode != 'selftest'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1 || \
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/pages" -f "source[branch]=gh-pages" -f "source[path]=/" || true
+      - name: JobHunter (бот + сбор + ИИ + отклики)
+        if: github.event.inputs.mode != 'selftest'
+        run: python -m jobhunter_engine.daemon --max-minutes 335

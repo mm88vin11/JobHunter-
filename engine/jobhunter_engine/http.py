@@ -18,4 +18,6 @@ def get(url: str, **kw):
 
 
 def get_json(url: str, **kw):
-    return get(url, **kw).json()
+    import json
+
+    return json.loads(get(url, **kw).content.decode("utf-8", "replace"))  # некоторые API шлют неверный charset
