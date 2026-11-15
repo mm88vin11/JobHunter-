@@ -1,0 +1,24 @@
+{
+  "name": "jobhunter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI job hunter: collects vacancies from hh.ru, Habr Career, Telegram, VK and global remote boards, scores them, applies automatically and reports via Telegram.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --test-scheduled",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 migrations apply jobhunter --remote",
+    "db:init:local": "wrangler d1 migrations apply jobhunter --local",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261115.1",
+    "typescript": "^5.6.3",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.162.0"
+  }
+}

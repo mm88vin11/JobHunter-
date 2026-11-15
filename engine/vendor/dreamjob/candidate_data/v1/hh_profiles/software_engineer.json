@@ -1,0 +1,23 @@
+{
+  "profile_key": "software_engineer",
+  "title": "Software Engineer",
+  "salary": {"amount": 100000, "currency": "RUR"},
+  "area": "Россия",
+  "relocation": "no_relocation",
+  "business_trip_readiness": "ready",
+  "employments": ["full", "project"],
+  "schedules": ["remote", "fullDay"],
+  "professional_roles": ["Программист, разработчик"],
+  "about": "Вымышленный демонстрационный профиль. Полностью замените его своими подтверждёнными данными перед отправкой на hh.ru.",
+  "skill_set": ["Python", "REST API", "SQL"],
+  "experience": [{
+    "company": "Example Company",
+    "position": "Software Engineer",
+    "start": "2024-01-01",
+    "end": null,
+    "area": "Россия",
+    "description": "Вымышленная демонстрационная запись опыта."
+  }],
+  "education": {"level": "Среднее", "primary": [], "additional": []},
+  "languages": [{"name": "Русский", "level": "Родной"}]
+}

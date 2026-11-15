@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "candidate_data_version": "demo-v2",
+  "demo_data": true,
+  "profiles": {
+    "project_manager": {
+      "resume": "resumes/project_manager.md",
+      "hh_profile": "hh_profiles/project_manager.json",
+      "search_queries": [
+        "Project Manager",
+        "Руководитель проектов"
+      ]
+    },
+    "software_engineer": {
+      "resume": "resumes/software_engineer.md",
+      "hh_profile": "hh_profiles/software_engineer.json",
+      "search_queries": [
+        "Software Engineer",
+        "Разработчик"
+      ]
+    }
+  },
+  "files": {
+    "career_facts.md": "ccf0ae896facfb7d1ba33165945c648ca1e5acb576f347916ac330838ba7b6b3",
+    "cover_letter_voice.md": "e24e4bee01679825c9e5dac1a4357ee584ba286ef6c2f711876741573e4da345",
+    "resume_voice.md": "7c5a29fa06d4d955ebed4adb1c3e5137bfd817a17acd10989cbe3880ff4757e1",
+    "resume_tailoring_prompt.md": "ec1fee09f3f54e4df27d6d2f4795dfc4ad9d3df742a2111fd833b91362b20cd8",
+    "distribution_strategy.md": "dc24bea587dacf477f648ec216fa71ee09cb95166e8ba1537cca724fa3ca5964",
+    "repository_evidence.md": "59913d5932ed8edbab466fb6c23c90ebf4d1c7a42162eb7119e294fbb9678425",
+    "project_architecture_audit.md": "d96a5b9f4a623bcdee6790be41cfe6dc895e445305ef6a93bb0e0ad5e952729c",
+    "project_blueprint.md": "e20894e8874ed81897e5b4d611c88076dbe366c43e6519651ae9c486d4a620b9",
+    "resumes/project_manager.md": "50cefc0d8790a22b83f3028ae1ee1f78c8d819e9e9d550f5aaae0f86cc0047b6",
+    "resumes/software_engineer.md": "f39577577dc383ce6b9321052d65362c6259f205d19043e2d23a607677461952",
+    "hh_profiles/project_manager.json": "f369afa0513096c3cc29a414972c292e2faf639387b20c582c16869d0ca51d38",
+    "hh_profiles/software_engineer.json": "529b46ae689d9c3e8bdd455bed03e0c67690d48e35cf5da8687c83737cf9aba8"
+  },
+  "generation_policy": {
+    "allowed_fields": [
+      "cover_letter"
+    ],
+    "repository_evidence_is_publishable": false,
+    "unconfirmed_sections_are_publishable": false,
+    "auto_apply": false
+  }
+}

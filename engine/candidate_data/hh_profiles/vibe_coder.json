@@ -1,0 +1,23 @@
+{
+  "profile_key": "vibe_coder",
+  "title": "Вайб-кодер / AI-разработчик / Fullstack-разработчик",
+  "salary": {"amount": 120000, "currency": "RUR"},
+  "area": "Россия",
+  "relocation": "relocation_possible",
+  "business_trip_readiness": "ready",
+  "employments": ["full", "part", "project"],
+  "schedules": ["remote", "flexible", "fullDay"],
+  "professional_roles": ["Программист, разработчик"],
+  "about": "Fullstack-разработчик и вайб-кодер, основатель студии разработки «БАЗА» (bazadigital.ru). Делаю продукты от идеи до запуска один: сайты, веб-приложения, Telegram/VK/MAX-боты, мини-приложения, CRM-автоматизация, внедрение ИИ.",
+  "skill_set": ["JavaScript", "TypeScript", "HTML5", "CSS3", "WebGL", "Three.js", "REST API", "Node.js", "Telegram Bot API", "Telegram Mini Apps", "Битрикс24", "amoCRM", "Интеграция с CRM", "Нейросети", "LLM", "ChatGPT", "Claude", "Cursor", "Вайб-кодинг", "Prompt engineering", "Автоматизация бизнес-процессов", "n8n", "UX/UI", "Figma", "SEO", "Яндекс.Метрика", "Управление проектами", "Английский язык"],
+  "experience": [{
+    "company": "Студия разработки «БАЗА» (bazadigital.ru)",
+    "position": "Основатель и fullstack-разработчик",
+    "start": "2025-05-01",
+    "end": null,
+    "area": "Россия",
+    "description": "Сайт студии с 3D, физикой и интерактивом; связки сайт + бот + CRM + ИИ под ключ; 120+ статей для блога; ведение клиентов от созвона до запуска."
+  }],
+  "education": {"level": "Среднее", "primary": [], "additional": []},
+  "languages": [{"name": "Русский", "level": "Родной"}, {"name": "Английский", "level": "B2"}]
+}

@@ -1,0 +1,33 @@
+name = "jobhunter"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+# Каждые 10 минут — рабочий цикл (сбор → оценка → отклики → синхронизация ответов).
+# В 06:00 UTC (09:00 МСК) — утренний дайджест в Telegram.
+[triggers]
+crons = ["*/10 * * * *", "0 6 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "jobhunter"
+database_id = "REPLACE_WITH_D1_ID"   # выдаст `npx wrangler d1 create jobhunter`
+migrations_dir = "migrations"
+
+# Бесплатный ИИ Cloudflare (используется, если не задан ANTHROPIC_API_KEY)
+[ai]
+binding = "AI"
+
+[vars]
+PUBLIC_URL = ""            # например https://jobhunter.<ваш-поддомен>.workers.dev (заполнится автоматически по первому запросу)
+HH_USER_AGENT = "JobHunter/1.0 (vlad_2048@mail.ru)"
+CLAUDE_MODEL = "claude-opus-5-5"
+
+# Секреты (wrangler secret put ИМЯ):
+#   ADMIN_PASSWORD        — пароль для веб-панели и привязки Telegram
+#   TELEGRAM_BOT_TOKEN    — токен бота от @BotFather
+#   ANTHROPIC_API_KEY     — (опционально) Claude для лучших писем
+#   HH_CLIENT_ID / HH_CLIENT_SECRET — приложение с dev.hh.ru (автоотклики на hh.ru)
+#   RESEND_API_KEY        — (опционально) отправка откликов на email
+#   VK_SERVICE_TOKEN      — (опционально) сервисный ключ VK-приложения
