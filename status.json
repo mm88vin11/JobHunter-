@@ -1,0 +1,110 @@
+{
+ "updated": "2026-11-21 21:27:07",
+ "ai": "Бесплатно: Google Gemini (gemini-3.8-flash) → Pollinations (openai)",
+ "bot_owner_bound": true,
+ "counts": {
+  "vacancies": 1076,
+  "newToday": 82,
+  "scored": 1076,
+  "queue": 0,
+  "applied": 0,
+  "appliedToday": 0,
+  "waitingUser": 82,
+  "replies": 0,
+  "hot": 0,
+  "invited": 0,
+  "offers": 0
+ },
+ "bySource": [
+  {
+   "source": "habr",
+   "n": 211
+  },
+  {
+   "source": "fl",
+   "n": 186
+  },
+  {
+   "source": "telegram",
+   "n": 156
+  },
+  {
+   "source": "linkedin",
+   "n": 151
+  },
+  {
+   "source": "getmatch",
+   "n": 95
+  },
+  {
+   "source": "hn",
+   "n": 77
+  },
+  {
+   "source": "jobicy",
+   "n": 71
+  },
+  {
+   "source": "wwr",
+   "n": 69
+  },
+  {
+   "source": "himalayas",
+   "n": 19
+  },
+  {
+   "source": "arbeitnow",
+   "n": 13
+  },
+  {
+   "source": "remoteok",
+   "n": 11
+  },
+  {
+   "source": "indeed",
+   "n": 5
+  },
+  {
+   "source": "trudvsem",
+   "n": 4
+  },
+  {
+   "source": "remotive",
+   "n": 3
+  },
+  {
+   "source": "glassdoor",
+   "n": 3
+  },
+  {
+   "source": "workingnomads",
+   "n": 2
+  }
+ ],
+ "last_tick": [
+  "оценено 0",
+  "откликов 0"
+ ],
+ "engine": {
+  "at": "2026-11-21T19:56:46.994532+00:00",
+  "stats": {
+   "vk": 0,
+   "remoteok": 7,
+   "remotive": 16,
+   "hh": 0,
+   "wwr": 177,
+   "workingnomads": 12,
+   "fl": 60,
+   "arbeitnow": 3,
+   "getmatch": 52,
+   "telegram": 249,
+   "jobicy": 198,
+   "hn": 170,
+   "himalayas": 57,
+   "trudvsem": 5,
+   "habr": 250,
+   "jobspy": 146
+  }
+ },
+ "errors": []
+}
