@@ -23,17 +23,29 @@
 
 Дальше всё идёт само: workflow **JobHunter** запускается каждые 30 минут, держит бота онлайн и работает круглосуточно.
 
-### Необязательные секреты (усиливают систему)
+### Нейросеть: бесплатно по умолчанию
+
+Ключи не нужны: письма и оценку делает бесплатный **Pollinations** (GPT-OSS). Цепочка переключается сама:
+если один сервис недоступен или упёрся в лимит, задачу подхватывает следующий.
+
+| Секрет (необязательно) | Качество | Где взять (бесплатно, без карты) |
+|---|---|---|
+| `GEMINI_API_KEY` | лучшее из бесплатных, отлично пишет по-русски | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| `GROQ_API_KEY` | очень быстро, GPT-OSS 120B | [console.groq.com/keys](https://console.groq.com/keys) |
+| `OPENROUTER_API_KEY` | бесплатные модели OpenRouter | [openrouter.ai/keys](https://openrouter.ai/keys) |
+| `ANTHROPIC_API_KEY` | платно: Claude Haiku 5.5 оценка, Opus 5.5 письма | [console.anthropic.com](https://console.anthropic.com) |
+
+Порядок: Claude (если есть ключ) → Gemini → Groq → OpenRouter → Pollinations. Если недоступны все, система
+оценивает вакансии по правилам и готовит шаблонные черновики, но сама их не отправляет.
+
+### Другие необязательные секреты
 
 | Секрет | Что даёт | Где взять |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | письма от Claude: оценка вакансий на **Claude Haiku 5.5** (дёшево, сотни в день), письма и ответы работодателям на **Claude Opus 5.5** (лучшее качество). Ориентир: $1–2 в день при 40 откликах | [console.anthropic.com](https://console.anthropic.com) → API Keys |
 | `HH_CLIENT_ID`, `HH_CLIENT_SECRET` | **автоотклики на hh.ru** и слежение за приглашениями | [dev.hh.ru](https://dev.hh.ru) → зарегистрировать приложение, Redirect URI: `https://mm88vin11.github.io/JobHunter-/hh.html`. Потом команда `/hh` в боте |
-| `EMAIL_ADDRESS`, `EMAIL_APP_PASSWORD` | отклики письмом **с вашей почты** и автоматическое чтение ответов работодателей | mail.ru → Безопасность → Пароли для внешних приложений |
+| `EMAIL_ADDRESS`, `EMAIL_APP_PASSWORD` | отклики письмом **с вашей почты** и чтение ответов работодателей | mail.ru → Безопасность → Пароли для внешних приложений |
 | `VK_SERVICE_TOKEN` | VK-сообщества с вакансиями | vk.com/apps?act=manage → приложение → сервисный ключ |
 | `DATA_KEY` | отдельный ключ шифрования базы (иначе используется токен бота) | любая длинная случайная строка |
-
-Без `ANTHROPIC_API_KEY` система всё равно собирает и ранжирует вакансии и готовит черновики по шаблону (с кодовыми словами), но сама их не отправляет. Бесплатного ИИ внутри GitHub больше нет: GitHub Models закрыты летом 2026 года.
 
 ## Что умеет
 
@@ -68,7 +80,7 @@ GitHub Actions: workflow «JobHunter» (каждые 30 мин, один зап�
  ├─ Telegram-бот: long polling, сервер не нужен
  ├─ сбор: engine/vendor/jobspy_repo (JobSpy) + jobhunter_engine/sources (15 площадок сверху)
  ├─ антискам и ранжирование: engine/vendor/dreamjob (dream-job-bot)
- ├─ ИИ: Claude (Haiku 5.5 оценка, Opus 5.5 письма)
+ ├─ ИИ: Gemini / Groq / OpenRouter / Pollinations (бесплатно) или Claude
  ├─ отклики: hh.ru API · SMTP · ссылки t.me
  ├─ ответы: hh.ru negotiations · IMAP
  ├─ база SQLite → AES-GCM → ветка jobhunter-data

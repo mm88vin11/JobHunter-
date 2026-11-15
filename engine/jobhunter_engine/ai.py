@@ -3,7 +3,8 @@
 Если задан ANTHROPIC_API_KEY — Claude, экономная схема:
   • оценка сотен вакансий — Claude Haiku 5.5 (≈$0.0005 за вакансию);
   • письма и ответы работодателям — Claude Opus 5.5 (их десятки в день, качество важнее всего).
-Без ключа: оценка по правилам dream-job-bot и черновик по шаблону (кодовые слова всё равно вставляются), без автоотправки.
+Без ключа Claude — цепочка бесплатных моделей: Google Gemini → Groq → OpenRouter (если заданы бесплатные ключи) → Pollinations (без ключа).
+Если все недоступны — оценка по правилам dream-job-bot и черновик по шаблону.
 """
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ import json
 import logging
 import os
 import re
+import time
 
 from candidate.service import extract_apply_instructions, extract_screening_steps, required_letter_openings  # dream-job-bot
 
@@ -22,14 +24,66 @@ WRITE_MODEL = os.environ.get("CLAUDE_WRITE_MODEL", "claude-opus-5-5")
 _client = None
 
 
+# Бесплатные провайдеры с OpenAI-совместимым API. Порядок = приоритет качества.
+# Ключи Gemini / Groq / OpenRouter бесплатные (без карты); Pollinations работает вообще без ключа.
+FREE_PROVIDERS = [
+    ("Google Gemini", "GEMINI_API_KEY", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+     os.environ.get("GEMINI_MODEL", "gemini-flash-latest")),
+    ("Groq", "GROQ_API_KEY", "https://api.groq.com/openai/v1/chat/completions", os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")),
+    ("OpenRouter", "OPENROUTER_API_KEY", "https://openrouter.ai/api/v1/chat/completions",
+     os.environ.get("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")),
+    ("Pollinations", None, "https://text.pollinations.ai/openai", os.environ.get("POLLINATIONS_MODEL", "openai")),
+]
+_last_call = {"t": 0.0}
+
+
+def _free_chain() -> list[tuple]:
+    return [p for p in FREE_PROVIDERS if p[1] is None or os.environ.get(p[1])]
+
+
 def provider() -> str:
     if os.environ.get("ANTHROPIC_API_KEY"):
         return f"Claude: оценка {SCORE_MODEL}, письма {WRITE_MODEL}"
-    return "без ИИ (добавьте секрет ANTHROPIC_API_KEY): оценка по правилам, черновики по шаблону, автоотправка выключена"
+    chain = _free_chain()
+    return "Бесплатно: " + " → ".join(f"{name} ({model})" for name, _, _, model in chain)
 
 
 def enabled() -> bool:
-    return bool(os.environ.get("ANTHROPIC_API_KEY"))
+    return os.environ.get("JH_DISABLE_AI") != "1"
+
+
+def _openai_compatible(name: str, key_env: str | None, url: str, model: str, system: str, user: str, schema: dict, max_tokens: int, write: bool) -> dict:
+    import time
+
+    import requests
+
+    if key_env is None:  # анонимный тариф Pollinations: не чаще раза в несколько секунд
+        wait = 4 - (time.time() - _last_call["t"])
+        if wait > 0:
+            time.sleep(wait)
+        _last_call["t"] = time.time()
+    headers = {"Content-Type": "application/json"}
+    if key_env:
+        headers["Authorization"] = f"Bearer {os.environ[key_env]}"
+    r = requests.post(url, headers=headers, timeout=180, json={
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system + "\nОтветь строго одним JSON-объектом по этой схеме (все числа — целые 0..100, где это оценки):\n"
+                                         + json.dumps(schema, ensure_ascii=False)},
+            {"role": "user", "content": user},
+        ],
+        "response_format": {"type": "json_object"},
+        "temperature": 0.7 if write else 0.2,
+        "max_tokens": max_tokens,
+    })
+    if r.status_code >= 400:
+        raise RuntimeError(f"{name} {r.status_code}: {r.text[:200]}")
+    msg = r.json()["choices"][0]["message"]
+    text = msg.get("content") or ""
+    m = re.search(r"\{.*\}", text, re.S)
+    if not m:
+        raise RuntimeError(f"{name}: ответ не JSON: {text[:150]}")
+    return json.loads(m.group(0))
 
 
 def _claude(system: str, user: str, schema: dict, *, write: bool, max_tokens: int) -> dict:
@@ -61,7 +115,16 @@ def _claude(system: str, user: str, schema: dict, *, write: bool, max_tokens: in
 def llm_json(system: str, user: str, schema: dict, *, write: bool = False, max_tokens: int = 3000) -> dict:
     if os.environ.get("ANTHROPIC_API_KEY"):
         return _claude(system, user, schema, write=write, max_tokens=max_tokens)
-    raise RuntimeError("ИИ не подключён: добавьте секрет ANTHROPIC_API_KEY")
+    errors = []
+    for name, key_env, url, model in _free_chain():
+        for attempt in range(3):
+            try:
+                return _openai_compatible(name, key_env, url, model, system, user, schema, max_tokens, write)
+            except Exception as e:  # лимит/сбой — ждём и пробуем ещё раз, затем следующий провайдер
+                errors.append(str(e)[:160])
+                log.info("ИИ %s: %s", name, e)
+                time.sleep(6 * (attempt + 1))
+    raise RuntimeError("все бесплатные ИИ недоступны: " + " | ".join(errors[-3:]))
 
 
 def clamp(v, lo=0, hi=100) -> int:
@@ -129,13 +192,27 @@ EVAL_SCHEMA = {
 def evaluate(v: dict, profile: dict) -> dict:
     rx = regex_instructions(v["title"], v.get("description") or "")
     if not enabled():
-        rule = v.get("rule_score") if v.get("rule_score") is not None else 50
-        return {"is_job": True, "scam": False, "fit": rule, "conditions": rule, "chance": rule, "red_flags": [],
-                "verdict": "Оценка по правилам (ИИ не подключён)",
-                "instructions": {"must_include": rx["phrases"], "must_start_with": rx["openings"][0] if rx["openings"] else "", "subject": "",
-                                 "questions": [], "other_rules": [], "manual_only": bool(rx["screening"]), "screening": rx["screening"], "raw": rx["lines"]}}
+        return _rule_eval(v, rx)
     hint = ("\n\nПохоже на инструкции к отклику (проверь и извлеки точно):\n- " + "\n- ".join(rx["lines"])) if rx["lines"] else ""
-    r = llm_json(
+    try:
+        r = _eval_llm(v, profile, rx)
+    except Exception as err:
+        log.info("оценка ИИ недоступна, использую правила: %s", err)
+        return _rule_eval(v, rx)
+    return _merge_eval(r, rx)
+
+
+def _rule_eval(v: dict, rx: dict) -> dict:
+    rule = v.get("rule_score") if v.get("rule_score") is not None else 50
+    return {"is_job": True, "scam": False, "fit": rule, "conditions": rule, "chance": rule, "red_flags": [],
+            "verdict": "Оценка по правилам (ИИ временно недоступен)",
+            "instructions": {"must_include": rx["phrases"], "must_start_with": rx["openings"][0] if rx["openings"] else "", "subject": "",
+                             "questions": [], "other_rules": [], "manual_only": bool(rx["screening"]), "screening": rx["screening"], "raw": rx["lines"]}}
+
+
+def _eval_llm(v: dict, profile: dict, rx: dict) -> dict:
+    hint = ("\n\nПохоже на инструкции к отклику (проверь и извлеки точно):\n- " + "\n- ".join(rx["lines"])) if rx["lines"] else ""
+    return llm_json(
         "Ты опытный IT-рекрутер. Оцени вакансию для кандидата честно и строго (0-100): fit — соответствие требованиям; "
         "conditions — деньги относительно рынка, удалёнка, гибкость, продукт, рост; chance — вероятность приглашения "
         "(у кандидата ~1.5 года своей студии, без вуза, сильное портфолио; Senior/Lead с 5+ годами — низкий шанс). "
@@ -148,6 +225,9 @@ def evaluate(v: dict, profile: dict) -> dict:
         f"Зарплата: {v.get('salary_from') or '?'}–{v.get('salary_to') or '?'} {v.get('currency') or ''}\n\n{(v.get('description') or '')[:7000]}{hint}",
         EVAL_SCHEMA, write=False, max_tokens=2500,
     )
+
+
+def _merge_eval(r: dict, rx: dict) -> dict:
     must = list(dict.fromkeys([*(r.get("must_include") or []), *rx["phrases"]]))
     start = (r.get("must_start_with") or "").strip() or (rx["openings"][0] if rx["openings"] else "")
     return {
@@ -235,7 +315,8 @@ def write_letter(v: dict, profile: dict, *, channel: str, instructions: dict | N
     if lang == "en":
         rules = [
             "Write like a real person: plain, specific, confident, not salesy. Natural American English.",
-            "Open with a short greeting and who you are in one line. Never restate the job post back to them.",
+            "Open with \"Hi, I'm Vlad\" (or the employer's required opening, if any), then get to the point. The studio is called BAZA. Never restate the job post back to them.",
+            "Put any required code word naturally, e.g. \"Code word: …\".",
             "Pick the 2–3 most important requirements and answer each with a REAL fact from the resume.",
             "If the role is about building websites, apps or bots, lead with that: the studio site with 3D and physics, turnkey site + bot + CRM + AI setups, bots and mini apps with payments, daily work with Cursor/Claude.",
             "Use ONLY facts from the resume. Never invent numbers, employers, years or technologies.",
@@ -247,8 +328,9 @@ def write_letter(v: dict, profile: dict, *, channel: str, instructions: dict | N
         ]
     else:
         rules = [
-            "Пиши как живой человек: просто, конкретно, уверенно, без канцелярита и пафоса.",
-            "Первая фраза: приветствие и сразу суть, кто ты. Не пересказывай работодателю его же вакансию.",
+            "Пиши как живой человек: просто, конкретно, уверенно, без канцелярита и пафоса. Обращение на «вы».",
+            "Начни так: «Здравствуйте! Меня зовут Влад» (или с обязательной фразы работодателя, если она задана), дальше сразу суть. Студия называется «БАЗА». Не пересказывай работодателю его же вакансию.",
+            "Кодовое слово вставляй естественно, отдельной фразой вида «Кодовое слово: …».",
             "Возьми 2–3 главных требования вакансии и на каждое ответь реальным фактом из резюме.",
             "Если вакансия про сайты, приложения или ботов, опирайся на это в первую очередь: сайт студии с 3D и физикой, связки «сайт + бот + CRM + ИИ», боты и мини-приложения с оплатой, работа с Cursor/Claude каждый день.",
             "Только факты из резюме. Ничего не выдумывай: ни цифр, ни компаний, ни сроков, ни технологий.",
@@ -288,7 +370,12 @@ def write_letter(v: dict, profile: dict, *, channel: str, instructions: dict | N
     letter, subject, problems = "", "", []
     for attempt in range(3):
         user = base if attempt == 0 else f"{base}\n\nПРЕДЫДУЩИЙ ВАРИАНТ:\n{letter}\n\nИСПРАВЬ ТОЛЬКО ЭТО, остальное сохрани:\n- " + "\n- ".join(problems)
-        r = llm_json(system, user, schema, write=True, max_tokens=4000)
+        try:
+            r = llm_json(system, user, schema, write=True, max_tokens=4000)
+        except Exception:
+            if letter:
+                break
+            return template_letter(v, profile, ins)
         letter, subject = humanize(str(r.get("letter") or "")), str(r.get("subject") or "").strip()
         problems = letter_problems(letter, lang, ins, chat)
         if not problems:

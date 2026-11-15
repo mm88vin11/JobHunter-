@@ -230,6 +230,8 @@ def apply(store, v: dict, *, force: bool = False, extra: str = "") -> dict:
     out = ai.write_letter(v, prof, channel=channel, instructions=ins, extra=extra)
     letter = out["letter"]
     c = contacts_of(v)
+    if any(pr.startswith("черновик без ИИ") for pr in out["problems"]) and channel in ("hh", "email"):
+        channel = "link"  # шаблонный черновик сам не отправляем — только по вашему касанию
     status, ref, note = "waiting_user", None, ""
     try:
         if channel == "hh":
