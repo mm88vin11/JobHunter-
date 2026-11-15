@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JobHunter</title>
+<meta name="description" content="Автономный ИИ-охотник за работой: 24 площадки, автоотклики, отчёты в Telegram">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231d1d1f'/><circle cx='16' cy='16' r='9' fill='none' stroke='white' stroke-width='2.6'/><circle cx='16' cy='16' r='3.6' fill='white'/></svg>">
+<style>
+:root{
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue","Segoe UI",Roboto,sans-serif;
+  --bg:#f2f2f7;--ink:#1d1d1f;--ink2:#6e6e73;--ink3:#86868b;--accent:#0071e3;--accent-ink:#fff;
+  --glass:rgba(255,255,255,.62);--glass-strong:rgba(255,255,255,.78);--hair:rgba(0,0,0,.08);--fill:rgba(120,120,128,.12);
+  --good:#248a3d;--warn:#b25000;--bad:#d70015;--hot:#c93400;
+  --shadow:0 1px 1px rgba(0,0,0,.02),0 8px 28px rgba(0,0,0,.06);
+  --blob1:rgba(10,132,255,.30);--blob2:rgba(94,92,230,.20);--blob3:rgba(48,209,88,.16);
+  --r:20px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#000;--ink:#f5f5f7;--ink2:#a1a1a6;--ink3:#8e8e93;--accent:#0a84ff;--accent-ink:#fff;
+  --glass:rgba(28,28,30,.58);--glass-strong:rgba(44,44,46,.72);--hair:rgba(255,255,255,.09);--fill:rgba(118,118,128,.24);
+  --good:#30d158;--warn:#ff9f0a;--bad:#ff453a;--hot:#ff9f0a;--shadow:0 8px 28px rgba(0,0,0,.35);
+  --blob1:rgba(10,132,255,.30);--blob2:rgba(94,92,230,.24);--blob3:rgba(48,209,88,.12);
+}}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:15px/1.47 var(--font);-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+body::before{content:"";position:fixed;inset:-20vmax;z-index:-1;pointer-events:none;
+  background:radial-gradient(40vmax 40vmax at 12% 8%,var(--blob1),transparent 60%),radial-gradient(36vmax 36vmax at 92% 18%,var(--blob2),transparent 60%),radial-gradient(44vmax 44vmax at 70% 100%,var(--blob3),transparent 60%)}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:1120px;margin:0 auto;padding:20px 16px 64px}
+.glass,.card{background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);border:1px solid var(--hair);border-radius:var(--r);box-shadow:var(--shadow)}
+.card{padding:20px}
+header{position:sticky;top:12px;z-index:5;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px 12px 18px;margin-bottom:22px;border-radius:18px;background:var(--glass-strong);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);border:1px solid var(--hair);box-shadow:var(--shadow)}
+.brand{display:flex;align-items:center;gap:10px}
+.mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(180deg,#3a3a3c,#1d1d1f);display:grid;place-items:center;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12)}
+.mark svg{width:16px;height:16px}
+header h1{font-size:17px;margin:0;font-weight:600;letter-spacing:-.02em}
+header .sub{color:var(--ink3);font-size:12px}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;background:var(--fill);color:var(--ink);border-radius:999px;padding:8px 16px;font:500 14px var(--font);cursor:pointer;white-space:nowrap;transition:transform .15s ease,background .2s ease}
+.btn:hover{text-decoration:none;background:rgba(120,120,128,.2)}.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}.btn.primary:hover{filter:brightness(1.08)}
+.btn.big{padding:12px 22px;font-size:15px}.btn.sm{padding:6px 12px;font-size:13px}
+nav{display:inline-flex;gap:2px;padding:3px;margin:0 0 20px;border-radius:12px;background:var(--fill);max-width:100%;overflow-x:auto}
+nav button{border:0;background:transparent;color:var(--ink);padding:7px 16px;border-radius:9px;font:500 13px var(--font);cursor:pointer;white-space:nowrap;transition:background .2s}
+nav button.on{background:var(--glass-strong);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px var(--hair)}
+.title{font-size:34px;line-height:1.1;font-weight:700;letter-spacing:-.03em;margin:4px 0 6px}
+.lede{color:var(--ink2);font-size:17px;line-height:1.45;max-width:620px;margin:0}
+.hero{display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;justify-content:space-between;padding:28px}
+.grid{display:grid;gap:14px}.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-top:14px}
+.kpi{padding:18px 20px}.kpi .n{font-size:32px;font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi .l{color:var(--ink2);font-size:13px;margin-top:2px}.kpi.hot .n{color:var(--hot)}
+.two{grid-template-columns:1.25fr 1fr;margin-top:14px}@media (max-width:860px){.two{grid-template-columns:1fr}}
+h2{font-size:19px;font-weight:600;letter-spacing:-.02em;margin:0 0 14px}
+.funnel .row{display:grid;grid-template-columns:150px 1fr 52px;align-items:center;gap:12px;margin:9px 0;font-size:14px}
+.funnel .row b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.funnel .bar{height:6px;background:var(--fill);border-radius:3px;overflow:hidden}.funnel .bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.events{max-height:440px;overflow:auto;font-size:13px}.events div{padding:9px 0;border-bottom:1px solid var(--hair);color:var(--ink)}
+.events div:last-child{border-bottom:0}.events .t{color:var(--ink3);margin-right:8px;font-variant-numeric:tabular-nums}
+.events .hot{color:var(--hot)}.events .error{color:var(--bad)}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+input,select,textarea{font:15px var(--font);color:var(--ink);background:var(--glass-strong);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid var(--hair);border-radius:12px;padding:10px 14px;min-width:0;max-width:100%;outline:none;transition:box-shadow .2s}
+input:focus,select:focus{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent)}
+#fq{flex:1 1 260px}
+.list{display:grid;gap:12px}
+.item{display:grid;grid-template-columns:52px 1fr auto;gap:16px;align-items:start}
+@media (max-width:640px){.item{grid-template-columns:44px 1fr}.item .acts{grid-column:1/-1;justify-content:flex-start}}
+.score{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-weight:600;font-size:17px;background:var(--fill);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.score.s3{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}.score.s2{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
+.item .t{font-weight:600;font-size:16px;letter-spacing:-.015em}.item .t a{color:var(--ink)}
+.item .m{color:var(--ink2);font-size:13px;margin-top:2px}.item .v{font-size:13px;margin-top:8px;color:var(--ink2)}
+.chip{display:inline-block;background:var(--fill);border-radius:999px;padding:2px 9px;font-size:12px;margin:0 4px 4px 0;color:var(--ink2);font-weight:500}
+.chip.hot{background:color-mix(in srgb,var(--hot) 14%,transparent);color:var(--hot)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.letter,.msg{white-space:pre-wrap;font-size:13px;line-height:1.5;border-radius:14px;padding:12px 14px;margin-top:10px;background:var(--fill)}
+.msg.in{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+details summary{cursor:pointer;color:var(--accent);font-size:13px;margin-top:10px;list-style:none}details summary::-webkit-details-marker{display:none}
+.ins{font-size:12.5px;margin-top:6px;color:var(--warn)}
+.src{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;font-size:14px}
+.src span{display:flex;align-items:center;gap:8px}.src i{width:8px;height:8px;border-radius:50%;background:var(--good)}.src i.off{background:var(--ink3);opacity:.5}
+.conn{display:grid}.conn .row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--hair)}.conn .row:last-of-type{border-bottom:0}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--ink3);opacity:.6;flex:none}.dot.ok{background:var(--good);opacity:1;box-shadow:0 0 0 4px color-mix(in srgb,var(--good) 18%,transparent)}
+.login{min-height:100vh;display:grid;place-items:center;padding:16px}.login .card{width:100%;max-width:380px;display:grid;gap:14px;padding:32px 28px;text-align:center}
+.login .mark{width:56px;height:56px;border-radius:16px;margin:0 auto 4px}.login .mark svg{width:30px;height:30px}
+.login h1{margin:0;font-size:24px;letter-spacing:-.02em}.login input{text-align:center}
+.hidden{display:none!important}.muted{color:var(--ink2)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--glass-strong);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid var(--hair);color:var(--ink);padding:12px 18px;border-radius:14px;font-size:14px;z-index:9;max-width:90vw;box-shadow:var(--shadow)}
+@media (max-width:560px){.title{font-size:28px}.hero{padding:22px}header{top:8px}}
+</style>
+</head>
+<body>
+<div id="login" class="login"><div class="card">
+  <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2" fill="#fff" stroke="none"/></svg></div><h1>JobHunter</h1><div class="muted">Пароль приходит от бота по команде /site</div>
+  <input id="pw" type="password" placeholder="Пароль" autocomplete="current-password">
+  <button class="btn primary" id="loginBtn">Войти</button><div id="lerr" class="muted"></div>
+</div></div>
+
+<div id="app" class="wrap hidden">
+  <header>
+    <div class="brand"><div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2" fill="#fff" stroke="none"/></svg></div><div><h1>JobHunter</h1><div class="sub" id="sub"></div></div></div>
+    <div class="spacer"></div>
+    <a class="btn" id="pauseBtn" target="_blank" rel="noopener">Пауза</a>
+    <a class="btn primary" id="runBtn" target="_blank" rel="noopener">Запустить поиск</a>
+  </header>
+  <nav id="tabs">
+    <button data-t="overview" class="on">Обзор</button><button data-t="vacancies">Вакансии</button><button data-t="apps">Отклики</button>
+    <button data-t="settings">Настройки</button><button data-t="connections">Подключения</button>
+  </nav>
+
+  <section id="t-overview">
+    <div class="card hero">
+      <div><div class="title">Охота идёт сама.</div><p class="lede">Каждые 2 часа (и сразу по кнопке) движок обходит 24 площадки: hh.ru, Хабр Карьера, Telegram-каналы, LinkedIn, Indeed и другие. ИИ оценивает вакансии, выполняет инструкции работодателя (кодовые слова, вопросы), пишет письмо на языке вакансии и откликается. Ответы приходят в Telegram с готовым черновиком.</p></div>
+      <a class="btn primary big" id="runBtn2" target="_blank" rel="noopener">Запустить сейчас</a>
+    </div>
+    <div class="grid kpis" id="kpis"></div>
+    <div class="grid two" style="margin-top:12px">
+      <div class="card"><h2>Воронка</h2><div class="funnel" id="funnel"></div><h2 style="margin-top:18px">Источники</h2><div class="funnel" id="sources"></div></div>
+      <div class="card"><h2>Журнал</h2><div class="events" id="events"></div></div>
+    </div>
+  </section>
+
+  <section id="t-vacancies" class="hidden">
+    <div class="filters">
+      <input id="fq" placeholder="Поиск по названию/компании">
+      <select id="fs"><option value="">Все статусы</option><option value="scored">Подходят</option><option value="new">Ждут оценки</option><option value="manual">Ждут касания</option><option value="applied">Отклик отправлен</option><option value="skipped">Отсеяны</option></select>
+      <select id="fsrc"><option value="">Все площадки</option></select>
+    </div>
+    <div class="list" id="vlist"></div>
+  </section>
+
+  <section id="t-apps" class="hidden"><div class="list" id="alist"></div></section>
+  <section id="t-settings" class="hidden"><div class="card" id="settings"></div></section>
+  <section id="t-connections" class="hidden"><div class="card conn" id="conn"></div></section>
+</div>
+<div id="toast" class="toast hidden"></div>
+
+<script>
+const $=s=>document.querySelector(s);const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const APP={draft:'Черновик',waiting_user:'Ждёт касания',sent:'Отправлен',viewed:'Просмотрен',invited:'Приглашение',interview:'Созвон',offer:'Оффер',rejected:'Отказ'};
+let D=null;
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function decrypt(pw){
+  const r=await fetch('data.enc.json?'+Date.now());if(!r.ok)throw new Error('Данные ещё не опубликованы — бот запускается');const e=await r.json();
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(e.salt),iterations:e.iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(e.iv)},key,b64(e.data));return JSON.parse(new TextDecoder().decode(pt));
+}
+const tg=cmd=>'https://t.me/'+D.bot+'?start='+encodeURIComponent(cmd);
+async function login(pw){try{D=await decrypt(pw);try{localStorage.setItem('jh_pw',pw)}catch(e){}$('#login').classList.add('hidden');$('#app').classList.remove('hidden');render()}catch(e){$('#lerr').textContent=e.message.includes('опубликованы')?e.message:'Неверный пароль';try{localStorage.removeItem('jh_pw')}catch(_){}}}
+$('#loginBtn').onclick=()=>login($('#pw').value);$('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')login($('#pw').value)});
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+function tab(t){document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.querySelectorAll('section').forEach(s=>s.classList.toggle('hidden',s.id!=='t-'+t));history.replaceState(null,'','#'+t)}
+const SRC=k=>(D.sources[k]||k);
+function kpi(n,l,c=''){return '<div class="card kpi '+c+'"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'}
+function bars(rows,max){return rows.map(([l,n])=>'<div class="row"><span>'+esc(l)+'</span><div class="bar"><i style="width:'+(max?Math.max(2,n/max*100):0)+'%"></i></div><b>'+n+'</b></div>').join('')}
+function sc(n){return n==null?'':(n>=75?'s3':n>=55?'s2':'')}
+function money(v){if(!v.salary_from&&!v.salary_to)return'';const c=(v.currency||'').replace(/RUR|RUB/,'₽').replace('USD','$').replace('EUR','€');const f=n=>Math.round(n).toLocaleString('ru');return (v.salary_from&&v.salary_to?f(v.salary_from)+'–'+f(v.salary_to):v.salary_from?'от '+f(v.salary_from):'до '+f(v.salary_to))+' '+c}
+function render(){
+  const s=D.stats;try{localStorage.setItem('jh_bot',D.bot)}catch(e){}
+  $('#sub').textContent=(D.settings.paused?'на паузе':'работает')+' · обновлено '+new Date(D.generated+'Z').toLocaleString('ru');
+  ['#runBtn','#runBtn2'].forEach(x=>$(x).href=tg('run'));$('#pauseBtn').href='https://t.me/'+D.bot;$('#pauseBtn').textContent=D.settings.paused?'Продолжить':'Пауза';
+  $('#kpis').innerHTML=kpi(s.vacancies,'вакансий найдено')+kpi('+'+s.newToday,'за сутки')+kpi(s.applied,'откликов отправлено')+kpi(s.waitingUser,'ждут одного касания')+kpi(s.replies,'ответили')+kpi(s.hot,'хотят созвониться','hot');
+  $('#funnel').innerHTML=bars([['Найдено',s.vacancies],['Оценено ИИ',s.scored],['Отклики',s.applied+s.waitingUser],['Ответили',s.replies],['Созвоны',s.invited],['Офферы',s.offers]],s.vacancies);
+  const mx=Math.max(1,...s.bySource.map(r=>r.n));$('#sources').innerHTML=bars(s.bySource.map(r=>[SRC(r.source),r.n]),mx)||'<div class="muted">Пока пусто</div>';
+  $('#events').innerHTML=D.events.map(e=>'<div class="'+e.level+'"><span class="t">'+esc((e.at||'').slice(5,16))+'</span>'+esc(e.text)+'</div>').join('')||'<div class="muted">Событий пока нет</div>';
+  const sel=$('#fsrc');if(sel.options.length<2)s.bySource.forEach(r=>sel.add(new Option(SRC(r.source),r.source)));
+  ['#fq','#fs','#fsrc'].forEach(x=>$(x).oninput=renderVac);renderVac();renderApps();renderSettings();renderConn();
+  tab((location.hash||'#overview').slice(1));
+}
+function insLine(v){try{const i=JSON.parse(v.instructions||'{}');const p=[...(i.must_start_with?[i.must_start_with]:[]),...(i.must_include||[])];return (p.length?'<div class="ins">Инструкции работодателя: '+esc(p.join(', '))+'</div>':'')+((i.questions||[]).length?'<div class="ins">Вопросы: '+esc(i.questions.join(' · '))+'</div>':'')}catch(e){return''}}
+function renderVac(){const q=$('#fq').value.toLowerCase(),st=$('#fs').value,src=$('#fsrc').value;
+  const rows=D.vacancies.filter(v=>(!q||(v.title+' '+(v.company||'')).toLowerCase().includes(q))&&(!st||v.status===st)&&(!src||v.source===src)).slice(0,250);
+  $('#vlist').innerHTML=rows.map(v=>'<div class="card item"><div class="score '+sc(v.score)+'">'+(v.score??'·')+'</div><div><div class="t"><a href="'+esc(v.url)+'" target="_blank" rel="noopener">'+esc(v.title)+'</a></div>'+
+  '<div class="m">'+esc(v.company||'')+' · '+esc(SRC(v.source))+(v.remote?' · удалённо':v.location?' · '+esc(v.location):'')+(money(v)?' · '+esc(money(v)):'')+(v.lang==='en'?' · EN':'')+'</div>'+
+  (v.fit!=null?'<div class="v"><span class="chip">соответствие '+v.fit+'</span><span class="chip">условия '+v.conditions+'</span><span class="chip">шанс '+v.chance+'</span>'+(v.app_status?'<span class="chip hot">'+(APP[v.app_status]||v.app_status)+'</span>':'')+'</div>':'')+
+  (v.verdict?'<div class="v muted">'+esc(v.verdict)+'</div>':'')+insLine(v)+'</div><div class="acts">'+(v.app_status&&v.app_status!=='waiting_user'?'':'<a class="btn sm primary" target="_blank" rel="noopener" href="'+tg('ap_'+v.rid)+'">Откликнуться</a>')+'<a class="btn sm" target="_blank" rel="noopener" href="'+tg('sk_'+v.rid)+'">Скрыть</a></div></div>').join('')||'<div class="card muted">Ничего не найдено</div>'}
+function renderApps(){$('#alist').innerHTML=D.applications.map(a=>'<div class="card item"><div class="score '+sc(a.score)+'">'+(a.score??'·')+'</div><div><div class="t"><a href="'+esc(a.url)+'" target="_blank" rel="noopener">'+esc(a.title)+'</a> '+(a.hot?'<span class="chip hot">хотят поговорить</span>':'')+' <span class="chip">'+(APP[a.status]||a.status)+'</span></div>'+
+  '<div class="m">'+esc(a.company||'')+' · '+esc(SRC(a.source))+' · канал: '+esc(a.channel)+' · '+esc((a.updated_at||'').slice(0,16))+'</div>'+
+  (a.messages||[]).filter(m=>m.direction==='in').map(m=>'<div class="msg in"><b>Работодатель:</b>\n'+esc(m.body)+'</div>').join('')+
+  (a.suggested_answer?'<div class="msg out"><b>Черновик ответа:</b>\n'+esc(a.suggested_answer)+'</div>':'')+
+  '<details><summary class="muted" style="cursor:pointer;font-size:13px">Письмо</summary><div class="letter">'+esc(a.letter)+'</div></details></div>'+
+  '<div class="acts">'+(a.status==='waiting_user'?(a.tg_link?'<a class="btn sm primary" target="_blank" rel="noopener" href="'+esc(a.tg_link)+'">Отправить в Telegram</a>':a.mail_link?'<a class="btn sm primary" target="_blank" rel="noopener" href="'+esc(a.mail_link)+'">Открыть готовое письмо</a>':'<button class="btn sm primary" data-copy="'+a.id+'">Скопировать и открыть</button>'):'')+(a.status==='waiting_user'?'<a class="btn sm" target="_blank" rel="noopener" href="'+tg('mk_'+a.rid)+'">Я отправил</a>':'')+'<a class="btn sm" target="_blank" rel="noopener" href="'+tg('rw_'+a.rid)+'">Переписать</a></div></div>').join('')||'<div class="card muted">Откликов пока нет</div>'}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-copy]');if(!b)return;const a=D.applications.find(x=>String(x.id)===b.dataset.copy);if(!a)return;
+  try{await navigator.clipboard.writeText(a.letter);toast('Письмо скопировано — вставьте его в форму отклика')}catch(_){}window.open(a.open_url||a.url,'_blank','noopener')});
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.remove('hidden');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.add('hidden'),3500)}
+function renderSettings(){const s=D.settings,edit=f=>'https://github.com/'+D.repo+'/edit/'+D.branch+'/config/'+f;
+  $('#settings').innerHTML='<h2>Настройки</h2><p class="muted" style="margin-top:0">Резюме, запросы, Telegram-каналы, стоп-слова и площадки лежат в двух файлах репозитория. Нажмите, исправьте в браузере и сохраните (Commit changes): бот подхватит изменения при следующем запуске.</p>'+
+  '<div class="acts" style="justify-content:flex-start;margin-bottom:16px"><a class="btn primary" target="_blank" rel="noopener" href="'+edit('settings.json')+'">Запросы, каналы, пороги</a><a class="btn" target="_blank" rel="noopener" href="'+edit('profile.json')+'">Резюме и контакты</a></div>'+
+  '<div class="funnel">'+bars([['Порог автоотклика',s.minScoreAuto],['Порог показа',s.minScoreNotify],['Откликов в сутки',s.dailyLimit]],100)+'</div>'+
+  '<p class="muted">Быстро из Telegram: /limit 40 · /threshold 62 · /pause · /resume</p><h2>Площадки</h2><div class="src">'+Object.entries(s.sources).map(([k,on])=>'<span><i class="'+(on?'':'off')+'"></i>'+esc(SRC(k))+'</span>').join('')+'</div>'}
+function renderConn(){const c=D.connections,row=(ok,name,desc,btn='')=>'<div class="row"><span class="dot '+(ok?'ok':'')+'"></span><div style="flex:1;min-width:220px"><b>'+name+'</b><div class="muted" style="font-size:13px">'+desc+'</div></div>'+btn+'</div>';
+  const sec='https://github.com/'+D.repo+'/settings/secrets/actions/new';
+  $('#conn').innerHTML='<h2>Подключения</h2>'+row(true,'Нейросеть',esc(c.ai)+(c.ai.includes('Gemini')||c.ai.startsWith('Claude')?'':' · для лучшего качества добавьте бесплатный секрет GEMINI_API_KEY'),'<a class="btn sm" target="_blank" href="'+sec+'">Секреты</a>')+
+  row(c.telegram,'Telegram-бот','@'+esc(D.bot),'<a class="btn sm" target="_blank" href="https://t.me/'+esc(D.bot)+'">Открыть</a>')+
+  row(c.hh,'hh.ru — автоотклики',c.hh?'Подключено':c.hh_configured?'Отправьте боту /hh':'Нужны секреты HH_CLIENT_ID и HH_CLIENT_SECRET (dev.hh.ru)',c.hh_configured&&!c.hh?'<a class="btn sm primary" target="_blank" href="https://t.me/'+esc(D.bot)+'">/hh в боте</a>':'<a class="btn sm" target="_blank" href="'+sec+'">Секреты</a>')+
+  row(c.email,'Email-отклики с вашей почты','Секреты EMAIL_ADDRESS и EMAIL_APP_PASSWORD (пароль приложения mail.ru)','<a class="btn sm" target="_blank" href="'+sec+'">Секреты</a>')+
+  row(c.tg_user,'Автоотправка HR в Telegram',c.tg_user?'Включена: письма уходят с вашего аккаунта, до 15 в сутки':c.tg_user_configured?'Отправьте боту /tglogin':'Секреты TELEGRAM_API_ID, TELEGRAM_API_HASH, TELEGRAM_PHONE, затем /tglogin в боте','<a class="btn sm" target="_blank" href="'+sec+'">Секреты</a>')+
+  row(c.vk,'VK-сообщества','Секрет VK_SERVICE_TOKEN')+
+  (D.engine?'<h2 style="margin-top:12px">Последний сбор '+new Date(D.engine.at).toLocaleString('ru')+'</h2><div class="muted" style="font-size:13px">'+Object.entries(D.engine.stats||{}).map(([k,v])=>esc(k==='jobspy'?'LinkedIn/Indeed/Glassdoor/…':SRC(k))+': '+esc(v)).join(' · ')+'</div>':'')}
+let saved=null;try{saved=localStorage.getItem('jh_pw')}catch(e){}
+if(saved)login(saved);
+setInterval(()=>{if(D){try{const p=localStorage.getItem('jh_pw');if(p)decrypt(p).then(d=>{D=d;const t=(location.hash||'#overview').slice(1);render();tab(t)}).catch(()=>{})}catch(e){}}},120000);
+</script>
+</body>
+</html>
