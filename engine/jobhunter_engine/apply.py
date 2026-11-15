@@ -207,6 +207,17 @@ def tg_link(username: str, text: str) -> str:
     return f"https://t.me/{username}?text={quote(text[:3500])}"
 
 
+def mail_link(to: str, subject: str, body: str) -> str:
+    """Открывает готовое письмо (адрес, тема, текст) в веб-почте Mail.ru — одно нажатие «Отправить»."""
+    mailto = f"mailto:{to}?subject={quote(subject)}&body={quote(body[:3000])}"
+    return f"https://e.mail.ru/compose/?mailto={quote(mailto, safe='')}"
+
+
+def apply_url(v: dict) -> str:
+    c = contacts_of(v)
+    return (v.get("apply_url") or "") or (c["links"][0] if c["links"] and v.get("source") in ("telegram", "vk", "hn") else "") or v["url"]
+
+
 def pick_channel(store, v: dict) -> str:
     c = contacts_of(v)
     if v["source"] == "hh" and store.get("hh_resume_id") and hh_connected(store):
@@ -215,6 +226,8 @@ def pick_channel(store, v: dict) -> str:
         return "email"
     if c["telegram"]:
         return "telegram"
+    if c["emails"]:
+        return "email"  # без почты в секретах: кнопка откроет готовое письмо в Mail.ru
     return "link"
 
 
@@ -260,11 +273,11 @@ def apply(store, v: dict, *, force: bool = False, extra: str = "") -> dict:
     if out["problems"]:
         note += " · ⚠️ проверьте: " + "; ".join(out["problems"][:2])
     store.x(
-        """INSERT INTO applications (vacancy_id, channel, letter, lang, status, external_ref, sent_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, CASE WHEN ? = 'sent' THEN datetime('now') END, datetime('now'))
-           ON CONFLICT(vacancy_id) DO UPDATE SET channel = excluded.channel, letter = excluded.letter, status = excluded.status,
+        """INSERT INTO applications (vacancy_id, channel, letter, lang, status, external_ref, sent_at, updated_at, subject)
+           VALUES (?, ?, ?, ?, ?, ?, CASE WHEN ? = 'sent' THEN datetime('now') END, datetime('now'), ?)
+           ON CONFLICT(vacancy_id) DO UPDATE SET channel = excluded.channel, letter = excluded.letter, status = excluded.status, subject = excluded.subject,
              external_ref = COALESCE(excluded.external_ref, external_ref), sent_at = COALESCE(excluded.sent_at, sent_at), updated_at = datetime('now')""",
-        v["id"], channel, letter, v.get("lang") or "ru", status, ref, status,
+        v["id"], channel, letter, v.get("lang") or "ru", status, ref, status, out["subject"],
     )
     store.x("UPDATE vacancies SET status = ?, apply_channel = ? WHERE id = ?", "applied" if status == "sent" else "manual", channel, v["id"])
     if status == "sent":

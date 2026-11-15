@@ -102,13 +102,16 @@ class Bot:
         if r["status"] != "waiting_user":
             return
         c = ap.contacts_of(dict(v))
+        letter = r.get("letter", "")
         buttons = []
         if r["channel"] == "telegram" and c["telegram"]:
-            buttons.append([{"text": f"✈️ Отправить @{c['telegram'][0]} (1 касание)", "url": ap.tg_link(c["telegram"][0], r.get("letter", ""))}])
+            buttons.append([{"text": f"✈️ Отправить @{c['telegram'][0]} — текст уже вписан", "url": ap.tg_link(c["telegram"][0], letter)}])
+        elif r["channel"] == "email" and c["emails"]:
+            buttons.append([{"text": f"📧 Открыть готовое письмо → {c['emails'][0]}", "url": ap.mail_link(c["emails"][0], r.get("subject") or v["title"], letter)}])
         else:
-            buttons.append([{"text": "🌐 Открыть вакансию", "url": (v["apply_url"] if "apply_url" in v.keys() and v["apply_url"] else None) or (c["links"][0] if c["links"] else v["url"])}])
-        buttons.append([{"text": "✔️ Я отправил", "callback_data": f"mk_{v['rowid']}"}, {"text": "🔁 Переписать", "callback_data": f"rw_{v['rowid']}"}])
-        self.say(f"✍️ <b>Отклик готов — нужно одно касание</b>\n{h(r.get('note', ''))}\n\n{self.card(v)}\n\n<code>{h(r.get('letter', '')[:2500])}</code>", buttons)
+            buttons.append([{"text": "🌐 Открыть страницу отклика (текст ниже — нажмите, чтобы скопировать)", "url": ap.apply_url(dict(v))}])
+        buttons.append([{"text": "✔️ Отправил", "callback_data": f"mk_{v['rowid']}"}, {"text": "🔁 Другой текст", "callback_data": f"rw_{v['rowid']}"}, {"text": "🚫 Не надо", "callback_data": f"sk_{v['rowid']}"}])
+        self.say(f"✍️ <b>Отклик готов — одна кнопка</b>\n{h(r.get('note', ''))}\n\n{self.card(v)}\n\n<code>{h(letter[:2500])}</code>", buttons)
 
     def notify_reply(self, app_id: int, a: dict) -> None:
         app = self.store.one("SELECT a.*, v.title, v.company, v.url FROM applications a JOIN vacancies v ON v.id = a.vacancy_id WHERE a.id = ?", app_id)
@@ -187,11 +190,11 @@ class Bot:
             rows = self.store.q("SELECT a.*, v.title, v.company, v.url FROM applications a JOIN vacancies v ON v.id = a.vacancy_id WHERE a.hot = 1 ORDER BY a.updated_at DESC LIMIT 15")
             self.say("🔥 <b>Хотят с вами говорить</b>\n\n" + ("\n".join(f"• <a href=\"{h(a['url'])}\">{h(a['title'])}</a> — {h(a['company'])} · {a['status']}" for a in rows) or "Пока нет. Как только кто-то позовёт — пришлю сразу."))
         elif cmd == "/waiting":
-            rows = self.store.q("SELECT v.rowid, v.*, a.letter, a.channel FROM applications a JOIN vacancies v ON v.id = a.vacancy_id WHERE a.status = 'waiting_user' ORDER BY v.score DESC LIMIT 5")
+            rows = self.store.q("SELECT v.rowid, v.*, a.letter, a.channel, a.subject FROM applications a JOIN vacancies v ON v.id = a.vacancy_id WHERE a.status = 'waiting_user' ORDER BY v.score DESC LIMIT 5")
             if not rows:
                 self.say("Все отклики отправлены 👌")
             for v in rows:
-                self.notify_applied(v, {"status": "waiting_user", "channel": v["channel"], "letter": v["letter"], "note": "ждёт отправки"})
+                self.notify_applied(v, {"status": "waiting_user", "channel": v["channel"], "letter": v["letter"], "subject": v["subject"], "note": "ждёт отправки"})
         elif cmd == "/site":
             self.cmd_site()
         elif cmd in ("/pause", "/resume"):

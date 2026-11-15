@@ -117,9 +117,10 @@ def llm_json(system: str, user: str, schema: dict, *, write: bool = False, max_t
         return _claude(system, user, schema, write=write, max_tokens=max_tokens)
     errors = []
     for name, key_env, url, model in _free_chain():
+        models = [model] + (["gemini-2.5-flash", "gemini-2.0-flash"] if name == "Google Gemini" else [])
         for attempt in range(3):
             try:
-                return _openai_compatible(name, key_env, url, model, system, user, schema, max_tokens, write)
+                return _openai_compatible(name, key_env, url, models[min(attempt, len(models) - 1)], system, user, schema, max_tokens, write)
             except Exception as e:  # лимит/сбой — ждём и пробуем ещё раз, затем следующий провайдер
                 errors.append(str(e)[:160])
                 log.info("ИИ %s: %s", name, e)
@@ -296,6 +297,21 @@ def letter_problems(letter: str, lang: str, ins: dict | None = None, chat: bool 
     return p
 
 
+TECH = ["next", "next.js", "nuxt", "react", "vue", "angular", "svelte", "python", "django", "fastapi", "flask", "php", "laravel", "wordpress",
+        "tilda", "bubble", "webflow", "flutter", "swift", "kotlin", "java", "golang", "go", "rust", "c#", ".net", "ruby", "rails", "docker",
+        "kubernetes", "aws", "postgresql", "mongodb", "redis", "graphql", "typescript", "node.js", "nodejs", "unity", "1с", "shopify", "n8n"]
+
+
+def invented_tech(letter: str, resume: str) -> list[str]:
+    """Технологии, которые письмо приписывает кандидату, хотя их нет в резюме."""
+    low, res = letter.lower(), resume.lower()
+    out = []
+    for t in TECH:
+        if re.search(rf"(?<![\w.]){re.escape(t)}(?![\w])", low) and t not in res and t.replace(".js", "") not in res:
+            out.append(t)
+    return out
+
+
 def humanize(s: str) -> str:
     s = re.sub(r"\s*—\s*", ", ", s)
     s = re.sub(r",\s*,", ",", s).replace("**", "")
@@ -378,6 +394,8 @@ def write_letter(v: dict, profile: dict, *, channel: str, instructions: dict | N
             return template_letter(v, profile, ins)
         letter, subject = humanize(str(r.get("letter") or "")), str(r.get("subject") or "").strip()
         problems = letter_problems(letter, lang, ins, chat)
+        problems += [f"убери упоминание «{t}»: этого нет в резюме, нельзя приписывать кандидату чужой опыт (можно сказать, что быстро освоишь)"
+                     for t in invented_tech(letter, resume)]
         if not problems:
             break
     if ins.get("subject"):

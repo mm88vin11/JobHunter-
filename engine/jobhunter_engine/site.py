@@ -51,6 +51,8 @@ def snapshot(store, bot_username: str) -> dict:
         row = store.one("SELECT contacts FROM vacancies WHERE id = ?", a["vacancy_id"])
         c = ap.contacts_of(dict(row) if row else {})
         a["tg_link"] = ap.tg_link(c["telegram"][0], a["letter"]) if a["channel"] == "telegram" and c["telegram"] else None
+        a["mail_link"] = ap.mail_link(c["emails"][0], a.get("subject") or a["title"], a["letter"]) if a["channel"] == "email" and c["emails"] else None
+        a["open_url"] = ap.apply_url({**dict(store.one("SELECT * FROM vacancies WHERE id = ?", a["vacancy_id"]))})
     s = config.settings(store)
     repo = os.environ.get("GITHUB_REPOSITORY", "mm88vin11/JobHunter-")
     branch = os.environ.get("GITHUB_REF_NAME", "main")

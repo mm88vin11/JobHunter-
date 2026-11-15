@@ -62,6 +62,9 @@ class Store:
         for col, ddl in (("instructions", "TEXT"), ("rule_score", "INTEGER"), ("apply_url", "TEXT"), ("notified", "INTEGER DEFAULT 0")):
             if col not in cols:
                 self.conn.execute(f"ALTER TABLE vacancies ADD COLUMN {col} {ddl}")
+        acols = {r["name"] for r in self.conn.execute("PRAGMA table_info(applications)")}
+        if "subject" not in acols:
+            self.conn.execute("ALTER TABLE applications ADD COLUMN subject TEXT")
         self.conn.commit()
 
     # ── доступ ──
